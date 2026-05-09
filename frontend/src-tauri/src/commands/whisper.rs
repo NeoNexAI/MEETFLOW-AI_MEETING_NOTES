@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use tauri::{AppHandle, State};
+use tauri::AppHandle;
 
 use crate::error::MeetflowError;
 use crate::storage;

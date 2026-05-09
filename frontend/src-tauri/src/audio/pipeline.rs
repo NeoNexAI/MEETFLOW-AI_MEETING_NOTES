@@ -18,6 +18,7 @@ use super::capture::{AudioBuffer, CaptureStream};
 pub struct RecordingState {
     pub meeting_id: String,
     pub started_at: Instant,
+    #[allow(dead_code)]
     pub audio_path: PathBuf,
     pub is_paused: bool,
 }
@@ -36,6 +37,7 @@ pub struct RecordingHandle {
     /// Synchronous sender — cpal streams are !Send, so the pipeline runs on a
     /// std thread rather than a tokio task.
     pub cmd_tx: SyncSender<PipelineCommand>,
+    #[allow(dead_code)]
     pub buffer: AudioBuffer,
 }
 
@@ -77,7 +79,6 @@ impl RecordingPipeline {
         let path_clone = audio_path.clone();
 
         std::thread::spawn(move || {
-            let mut writer: Option<hound::WavWriter<std::io::BufWriter<std::fs::File>>> = None;
             let spec = hound::WavSpec {
                 channels: 1,
                 sample_rate: 16_000,
@@ -86,22 +87,23 @@ impl RecordingPipeline {
             };
 
             // Start the microphone stream (lives on this thread for its entire lifetime)
-            let stream = CaptureStream::start_microphone(buffer_clone.clone());
-            if let Err(ref e) = stream {
-                tracing::error!("Failed to start microphone: {e}");
-                let _ = transcript_tx.send(format!("[Error: {e}]"));
-                return;
-            }
-            let _stream = stream; // keep alive for the duration of the loop
+            let _stream = match CaptureStream::start_microphone(buffer_clone.clone()) {
+                Ok(s) => s,
+                Err(e) => {
+                    tracing::error!("Failed to start microphone: {e}");
+                    let _ = transcript_tx.send(format!("[Error: {e}]"));
+                    return;
+                }
+            };
 
-            // Create WAV writer
-            match hound::WavWriter::create(&path_clone, spec) {
-                Ok(w) => writer = Some(w),
+            // Create WAV writer — always initialized here or we return early
+            let mut writer = match hound::WavWriter::create(&path_clone, spec) {
+                Ok(w) => w,
                 Err(e) => {
                     tracing::error!("Failed to create WAV file: {e}");
                     return;
                 }
-            }
+            };
 
             let mut last_flush = Instant::now();
 
@@ -129,22 +131,17 @@ impl RecordingPipeline {
                     // Drain buffer and write to WAV
                     let samples = {
                         let mut buf = buffer_clone.lock().unwrap();
-                        let drained: Vec<f32> = buf.drain(..).collect();
-                        drained
+                        buf.drain(..).collect::<Vec<f32>>()
                     };
 
-                    if let Some(ref mut w) = writer {
-                        for sample in &samples {
-                            let s16 = (sample.clamp(-1.0, 1.0) * 32767.0) as i16;
-                            let _ = w.write_sample(s16);
-                        }
+                    for sample in &samples {
+                        let s16 = (sample.clamp(-1.0, 1.0) * 32767.0) as i16;
+                        let _ = writer.write_sample(s16);
                     }
 
                     // Auto-flush every 30 seconds for crash recovery
                     if last_flush.elapsed() > Duration::from_secs(30) {
-                        if let Some(ref mut w) = writer {
-                            let _ = w.flush();
-                        }
+                        let _ = writer.flush();
                         last_flush = Instant::now();
                     }
                 }
@@ -153,10 +150,8 @@ impl RecordingPipeline {
             }
 
             // Finalize WAV file
-            if let Some(w) = writer {
-                if let Err(e) = w.finalize() {
-                    tracing::error!("Failed to finalize WAV: {e}");
-                }
+            if let Err(e) = writer.finalize() {
+                tracing::error!("Failed to finalize WAV: {e}");
             }
 
             tracing::info!("Recording pipeline stopped for meeting {meeting_id}");

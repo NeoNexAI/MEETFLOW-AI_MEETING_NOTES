@@ -11,6 +11,7 @@ pub type AudioBuffer = Arc<Mutex<Vec<f32>>>;
 /// An active capture stream. Dropping this stops the capture.
 pub struct CaptureStream {
     _stream: cpal::Stream,
+    #[allow(dead_code)]
     pub config: SupportedStreamConfig,
 }
 

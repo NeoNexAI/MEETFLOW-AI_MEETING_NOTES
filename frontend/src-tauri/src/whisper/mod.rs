@@ -1,8 +1,6 @@
 pub mod download;
 pub mod engine;
 
-pub use engine::WhisperEngine;
-
 /// Catalog of downloadable Whisper models.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]

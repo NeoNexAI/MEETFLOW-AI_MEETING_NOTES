@@ -7,7 +7,7 @@ use crate::audio::{
     devices::{list_input_devices, list_loopback_devices, AudioDeviceInfo},
     pipeline::{PipelineCommand, RecordingHandle, RecordingPipeline},
 };
-use crate::db::{models::Meeting, DbPool};
+use crate::db::DbPool;
 use crate::error::MeetflowError;
 use crate::storage;
 

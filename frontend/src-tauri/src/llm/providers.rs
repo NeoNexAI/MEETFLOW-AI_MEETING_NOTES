@@ -28,6 +28,7 @@ impl LlmProvider {
     }
 
     /// Whether this provider uses OpenAI-compatible API format.
+    #[allow(dead_code)]
     pub fn is_openai_compatible(&self) -> bool {
         matches!(
             self,

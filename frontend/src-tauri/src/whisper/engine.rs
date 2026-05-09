@@ -9,12 +9,14 @@ use crate::error::MeetflowError;
 /// Note: whisper-rs is NOT added to Cargo.toml yet because it requires
 /// MSVC + cmake to build. It will be added in the next phase once the
 /// build toolchain is verified. This file defines the interface.
+#[allow(dead_code)]
 pub struct WhisperEngine {
     /// Path to the loaded .bin model file.
     pub model_path: PathBuf,
     // whisper_rs::WhisperContext goes here once the crate is added
 }
 
+#[allow(dead_code)]
 impl WhisperEngine {
     /// Load a whisper model from disk.
     pub fn load(model_path: PathBuf) -> Result<Self, MeetflowError> {
@@ -57,6 +59,7 @@ impl WhisperEngine {
 }
 
 /// Output of a transcription run.
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct TranscribeResult {
     pub text: String,

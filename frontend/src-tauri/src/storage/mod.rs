@@ -14,6 +14,7 @@ pub fn app_data_dir(app: &tauri::AppHandle) -> Result<PathBuf, MeetflowError> {
 }
 
 /// Path to the SQLite database file.
+#[allow(dead_code)]
 pub fn db_path(app: &tauri::AppHandle) -> Result<PathBuf, MeetflowError> {
     Ok(app_data_dir(app)?.join("meetflow.db"))
 }

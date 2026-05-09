@@ -14,6 +14,7 @@ pub enum MeetflowError {
     Audio(String),
 
     #[error("Transcription error: {0}")]
+    #[allow(dead_code)]
     Transcription(String),
 
     #[error("LLM error: {0}")]
@@ -32,6 +33,7 @@ pub enum MeetflowError {
     NotFound(String),
 
     #[error("Invalid input: {0}")]
+    #[allow(dead_code)]
     InvalidInput(String),
 }
 

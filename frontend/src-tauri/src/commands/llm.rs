@@ -4,7 +4,7 @@ use crate::db::DbPool;
 use crate::error::MeetflowError;
 use crate::llm::{
     client::LlmClient,
-    providers::{LlmConfig, LlmProvider},
+    providers::LlmConfig,
     summary::{generate_summary, to_db_summary, GenerateSummaryRequest, GenerateSummaryResponse},
 };
 
