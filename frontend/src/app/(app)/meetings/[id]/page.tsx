@@ -281,6 +281,26 @@ function TranscriptTab({ meetingId }: { meetingId: string }) {
     );
   }
 
+  // Transcript row exists but content is empty — whisper-rs stub (v0.1)
+  if (!transcript.content) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-10 text-center">
+        <div className="w-10 h-10 rounded-xl bg-[var(--bg-elevated)] flex items-center justify-center">
+          <Loader2 className="w-5 h-5 text-[var(--text-tertiary)]" />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-[var(--text-secondary)]">
+            Transcription not yet available
+          </p>
+          <p className="text-xs text-[var(--text-tertiary)] mt-1 max-w-xs">
+            Local Whisper integration is coming in v0.2.{" "}
+            Audio is saved — the file will be transcribed automatically on upgrade.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-1">
       {transcript.segments.length > 0 ? (

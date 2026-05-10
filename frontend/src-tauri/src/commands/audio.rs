@@ -114,7 +114,7 @@ pub async fn stop_recording(
     // Signal pipeline to stop (sync channel — no await needed)
     let _ = handle.cmd_tx.send(PipelineCommand::Stop);
 
-    // Update meeting in DB
+    // Update meeting + insert transcript placeholder in a single lock acquisition
     {
         let conn =
             db.0.lock()
@@ -122,6 +122,17 @@ pub async fn stop_recording(
         conn.execute(
             "UPDATE meetings SET ended_at = ?1, duration_sec = ?2 WHERE id = ?3",
             rusqlite::params![ended_at, duration_sec, meeting_id],
+        )?;
+
+        // Insert empty transcript placeholder (whisper-rs transcription will replace
+        // this in v0.2; ON CONFLICT DO NOTHING avoids clobbering a real transcript).
+        let transcript_id = uuid::Uuid::new_v4().to_string();
+        let now = chrono::Utc::now().timestamp_millis();
+        conn.execute(
+            "INSERT INTO transcripts (id, meeting_id, content, segments, word_count, created_at)
+             VALUES (?1, ?2, '', '[]', 0, ?3)
+             ON CONFLICT(meeting_id) DO NOTHING",
+            rusqlite::params![transcript_id, meeting_id, now],
         )?;
     }
 
