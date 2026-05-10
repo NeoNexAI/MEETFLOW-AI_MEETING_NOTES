@@ -328,6 +328,14 @@ function TranscriptTab({ meetingId }: { meetingId: string }) {
   );
 }
 
+// ─── Static params (required by output: "export" with dynamic routes) ────────
+
+export function generateStaticParams() {
+  // Returns an empty array — meeting IDs are resolved client-side via useParams().
+  // Next.js will generate a static shell that hydrates in the Tauri webview.
+  return [];
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function MeetingDetailPage() {

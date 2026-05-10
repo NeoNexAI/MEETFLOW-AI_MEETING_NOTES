@@ -17,7 +17,7 @@ impl LlmProvider {
     /// Base URL for each provider's chat completion endpoint.
     pub fn base_url(&self, custom_url: Option<&str>) -> String {
         match self {
-            Self::Ollama => "http://localhost:11434".to_string(),
+            Self::Ollama => "http://127.0.0.1:11434".to_string(),
             Self::Claude => "https://api.anthropic.com".to_string(),
             Self::OpenAi => "https://api.openai.com".to_string(),
             Self::Groq => "https://api.groq.com/openai".to_string(),

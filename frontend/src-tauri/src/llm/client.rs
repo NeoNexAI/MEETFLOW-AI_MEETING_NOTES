@@ -183,8 +183,23 @@ impl LlmClient {
             .ok_or_else(|| MeetflowError::Llm("Empty response from Claude".into()))
     }
 
-    /// Quick connection test — sends a minimal prompt and checks for any response.
+    /// Quick connection test.
+    ///
+    /// For Ollama we use a lightweight GET /api/tags ping (no model inference needed,
+    /// responds in < 1 s).  For cloud providers we send a minimal completion request.
     pub async fn test_connection(&self) -> Result<(), MeetflowError> {
+        if self.config.provider == LlmProvider::Ollama {
+            let base = self.config.provider.base_url(self.config.base_url.as_deref());
+            let url = format!("{base}/api/tags");
+            self.http
+                .get(&url)
+                .send()
+                .await
+                .map_err(|_| MeetflowError::Llm("Ollama not reachable at the configured URL".into()))?
+                .error_for_status()
+                .map_err(|e| MeetflowError::Llm(e.to_string()))?;
+            return Ok(());
+        }
         self.complete("You are a test assistant.", "Reply with only the word: ok")
             .await?;
         Ok(())

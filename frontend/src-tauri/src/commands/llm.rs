@@ -78,7 +78,7 @@ pub async fn generate_meeting_summary(
 pub async fn list_ollama_models(base_url: Option<String>) -> Result<Vec<String>, MeetflowError> {
     let url = format!(
         "{}/api/tags",
-        base_url.as_deref().unwrap_or("http://localhost:11434")
+        base_url.as_deref().unwrap_or("http://127.0.0.1:11434")
     );
 
     #[derive(serde::Deserialize)]
