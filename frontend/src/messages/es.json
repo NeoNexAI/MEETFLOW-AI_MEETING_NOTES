@@ -26,6 +26,11 @@
       "saving": "Guardando...",
       "error": "Algo salió mal",
       "success": "Hecho"
+    },
+    "error": {
+      "title": "Algo salió mal",
+      "description": "Esta parte de MeetFlow tuvo un error inesperado. Tus grabaciones y datos están a salvo en el disco.",
+      "retry": "Reintentar"
     }
   },
   "navigation": {
@@ -128,6 +133,7 @@
     "ai_provider": {
       "title": "Configura los resúmenes con IA",
       "subtitle": "Elige cómo MeetFlow genera resúmenes y tareas.",
+      "model_placeholder": "Elige modelo",
       "modes": {
         "local": {
           "label": "Ollama local",
@@ -229,6 +235,7 @@
       "summary": {
         "generating": "Generando resumen…",
         "generate": "Generar resumen",
+        "regenerate": "Regenerar",
         "empty": "Sin resumen aún. Haz clic para generar.",
         "executive": "Resumen",
         "action_items": "Tareas",

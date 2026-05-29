@@ -111,6 +111,7 @@ type DownloadState = "idle" | "downloading" | "done" | "error";
 
 function StepModel({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   const t = useTranslations("onboarding.model");
+  const tc = useTranslations("common.button");
   const [models, setModels] = useState<ModelStatus[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -254,7 +255,7 @@ function StepModel({ onNext, onBack }: { onNext: () => void; onBack: () => void 
 
       <div className="flex gap-3 justify-between">
         <Button variant="ghost" size="sm" onClick={onBack}>
-          <ChevronLeft className="w-4 h-4" /> Back
+          <ChevronLeft className="w-4 h-4" /> {tc("back")}
         </Button>
         <Button
           onClick={onNext}
@@ -284,6 +285,7 @@ const CLOUD_PROVIDERS: { value: LlmProvider; label: string; models: string[] }[]
 
 function StepAiProvider({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   const t = useTranslations("onboarding.ai_provider");
+  const tc = useTranslations("common.button");
   const [mode, setMode] = useState<AiMode>("local");
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
   const [ollamaDetected, setOllamaDetected] = useState<boolean | null>(null);
@@ -395,7 +397,7 @@ function StepAiProvider({ onNext, onBack }: { onNext: () => void; onBack: () => 
           {ollamaDetected && ollamaModels.length > 0 && (
             <Select value={selectedModel} onValueChange={setSelectedModel}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose model" />
+                <SelectValue placeholder={t("model_placeholder")} />
               </SelectTrigger>
               <SelectContent>
                 {ollamaModels.map((m) => (
@@ -467,7 +469,7 @@ function StepAiProvider({ onNext, onBack }: { onNext: () => void; onBack: () => 
 
       <div className="flex gap-3 justify-between">
         <Button variant="ghost" size="sm" onClick={onBack}>
-          <ChevronLeft className="w-4 h-4" /> Back
+          <ChevronLeft className="w-4 h-4" /> {tc("back")}
         </Button>
         <Button onClick={handleFinish} className="gap-2">
           Start using MeetFlow

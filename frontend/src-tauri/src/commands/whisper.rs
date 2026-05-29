@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use tauri::{AppHandle, Emitter, State};
@@ -15,20 +15,26 @@ use crate::whisper::{download, engine::WhisperEngine, ModelCatalogEntry, MODEL_C
 /// once. Subsequent transcriptions skip the 1-10s model-load phase entirely.
 pub struct WhisperModelCache(pub Mutex<Option<(PathBuf, Arc<WhisperContext>)>>);
 
+impl Default for WhisperModelCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WhisperModelCache {
     pub fn new() -> Self {
         Self(Mutex::new(None))
     }
 
     /// Return a context for `model_path`, loading from disk only if needed.
-    fn get_or_load(&self, model_path: &PathBuf) -> Result<Arc<WhisperContext>, MeetflowError> {
+    fn get_or_load(&self, model_path: &Path) -> Result<Arc<WhisperContext>, MeetflowError> {
         let mut guard = self
             .0
             .lock()
             .map_err(|_| MeetflowError::Transcription("Model cache lock poisoned".into()))?;
 
         if let Some((cached_path, ctx)) = &*guard {
-            if cached_path == model_path {
+            if cached_path.as_path() == model_path {
                 tracing::debug!("WhisperContext cache hit: {}", model_path.display());
                 return Ok(Arc::clone(ctx));
             }
@@ -45,7 +51,7 @@ impl WhisperModelCache {
             )
             .map_err(|e| MeetflowError::Transcription(format!("Failed to load model: {e}")))?,
         );
-        *guard = Some((model_path.clone(), Arc::clone(&ctx)));
+        *guard = Some((model_path.to_path_buf(), Arc::clone(&ctx)));
         Ok(ctx)
     }
 }
@@ -152,10 +158,9 @@ pub async fn transcribe_meeting(
 
     // ── 1. DB reads (fast, hold lock briefly) ────────────────────────────────
     let (audio_path, already_transcribed) = {
-        let conn = db
-            .0
-            .lock()
-            .map_err(|_| MeetflowError::Db("Lock poisoned".into()))?;
+        let conn =
+            db.0.lock()
+                .map_err(|_| MeetflowError::Db("Lock poisoned".into()))?;
 
         let audio_path: Option<String> = conn
             .query_row(
@@ -184,8 +189,8 @@ pub async fn transcribe_meeting(
         return Ok(());
     }
 
-    let audio_path = audio_path
-        .ok_or_else(|| MeetflowError::NotFound("Meeting has no audio file".into()))?;
+    let audio_path =
+        audio_path.ok_or_else(|| MeetflowError::NotFound("Meeting has no audio file".into()))?;
 
     // ── 2. Resolve model path (async-safe fs check) ───────────────────────────
     let models_dir = storage::models_dir(&app)?;
@@ -221,10 +226,9 @@ pub async fn transcribe_meeting(
     let word_count = result.text.split_whitespace().count() as i64;
 
     {
-        let conn = db
-            .0
-            .lock()
-            .map_err(|_| MeetflowError::Db("Lock poisoned".into()))?;
+        let conn =
+            db.0.lock()
+                .map_err(|_| MeetflowError::Db("Lock poisoned".into()))?;
 
         conn.execute(
             "UPDATE transcripts SET content = ?1, segments = ?2, word_count = ?3
@@ -246,7 +250,7 @@ pub async fn transcribe_meeting(
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-fn find_first_downloaded_model(models_dir: &PathBuf) -> Result<PathBuf, MeetflowError> {
+fn find_first_downloaded_model(models_dir: &Path) -> Result<PathBuf, MeetflowError> {
     for entry in MODEL_CATALOG {
         let path = models_dir.join(format!("ggml-{}.bin", entry.id));
         if path.exists() {

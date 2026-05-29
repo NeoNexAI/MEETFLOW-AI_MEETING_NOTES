@@ -69,11 +69,15 @@ struct AnthropicContent {
 
 impl LlmClient {
     pub fn new(config: LlmConfig) -> Self {
+        // Building the client only fails if the TLS backend cannot initialise,
+        // which is effectively impossible with rustls. Fall back to a default
+        // client rather than panicking so a transient init issue never crashes
+        // the app.
         let http = Arc::new(
             reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(120))
                 .build()
-                .expect("failed to build HTTP client"),
+                .unwrap_or_else(|_| reqwest::Client::new()),
         );
         Self { http, config }
     }
@@ -189,13 +193,18 @@ impl LlmClient {
     /// responds in < 1 s).  For cloud providers we send a minimal completion request.
     pub async fn test_connection(&self) -> Result<(), MeetflowError> {
         if self.config.provider == LlmProvider::Ollama {
-            let base = self.config.provider.base_url(self.config.base_url.as_deref());
+            let base = self
+                .config
+                .provider
+                .base_url(self.config.base_url.as_deref());
             let url = format!("{base}/api/tags");
             self.http
                 .get(&url)
                 .send()
                 .await
-                .map_err(|_| MeetflowError::Llm("Ollama not reachable at the configured URL".into()))?
+                .map_err(|_| {
+                    MeetflowError::Llm("Ollama not reachable at the configured URL".into())
+                })?
                 .error_for_status()
                 .map_err(|e| MeetflowError::Llm(e.to_string()))?;
             return Ok(());

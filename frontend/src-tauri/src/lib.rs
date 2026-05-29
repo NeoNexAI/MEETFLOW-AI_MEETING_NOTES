@@ -84,5 +84,11 @@ pub fn run() {
             commands::llm::list_ollama_models,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running MeetFlow");
+        .unwrap_or_else(|e| {
+            // Log and exit non-zero instead of panicking: with panic = "abort"
+            // in release a panic produces an opaque crash, whereas a logged
+            // exit is diagnosable from the user's log file.
+            tracing::error!("fatal: MeetFlow failed to start: {e}");
+            std::process::exit(1);
+        });
 }

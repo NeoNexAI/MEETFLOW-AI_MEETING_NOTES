@@ -26,6 +26,11 @@
       "saving": "Saving...",
       "error": "Something went wrong",
       "success": "Done"
+    },
+    "error": {
+      "title": "Something went wrong",
+      "description": "This part of MeetFlow hit an unexpected error. Your recordings and data are safe on disk.",
+      "retry": "Try again"
     }
   },
   "navigation": {
@@ -128,6 +133,7 @@
     "ai_provider": {
       "title": "Set up AI summaries",
       "subtitle": "Choose how MeetFlow generates summaries and action items.",
+      "model_placeholder": "Choose model",
       "modes": {
         "local": {
           "label": "Local Ollama",
@@ -229,6 +235,7 @@
       "summary": {
         "generating": "Generating summary…",
         "generate": "Generate summary",
+        "regenerate": "Regenerate",
         "empty": "No summary yet. Click to generate.",
         "executive": "Summary",
         "action_items": "Action Items",

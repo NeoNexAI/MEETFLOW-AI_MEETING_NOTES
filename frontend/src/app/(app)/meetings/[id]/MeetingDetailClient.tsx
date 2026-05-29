@@ -174,7 +174,7 @@ function SummaryTab({ meetingId, title, durationSec }: { meetingId: string; titl
           className="ml-auto text-xs"
         >
           <Sparkles className="w-3.5 h-3.5" />
-          Regenerate
+          {t("regenerate")}
         </Button>
       </div>
 
