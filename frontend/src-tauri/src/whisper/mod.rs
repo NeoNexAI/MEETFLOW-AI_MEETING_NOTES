@@ -13,6 +13,9 @@ pub struct ModelCatalogEntry {
     pub speed: &'static str,
     pub badge: Option<&'static str>,
     pub hf_url: &'static str,
+    /// SHA256 hex digest (64 chars) for post-download integrity verification.
+    /// An empty string means "not yet pinned" — verification is skipped with a
+    /// warning. Pin real digests before GA (see docs/playbooks/release.md).
     pub sha256: &'static str,
 }
 
@@ -37,7 +40,8 @@ pub const MODEL_CATALOG: &[ModelCatalogEntry] = &[
         speed: "fast",
         badge: Some("recommended"),
         hf_url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q5_1.bin",
-        sha256: "ae85e26e5fa2d0dba4524c66a6ba64cedf6d2588",
+        // TODO(release): pin real SHA256 (was a 40-char SHA1 that broke downloads).
+        sha256: "",
     },
     ModelCatalogEntry {
         id: "medium-q5_0",
@@ -48,7 +52,8 @@ pub const MODEL_CATALOG: &[ModelCatalogEntry] = &[
         speed: "medium",
         badge: None,
         hf_url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium-q5_0.bin",
-        sha256: "9c5f0b5c7b6a4e1f",
+        // TODO(release): pin real SHA256.
+        sha256: "",
     },
     ModelCatalogEntry {
         id: "large-v3-turbo-q5_0",
@@ -60,6 +65,7 @@ pub const MODEL_CATALOG: &[ModelCatalogEntry] = &[
         badge: Some("best_value"),
         hf_url:
             "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin",
-        sha256: "1c3b4e5f6a7b8c9d",
+        // TODO(release): pin real SHA256.
+        sha256: "",
     },
 ];

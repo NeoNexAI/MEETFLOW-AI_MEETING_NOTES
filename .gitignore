@@ -7,9 +7,12 @@ node_modules/
 frontend/.next/
 frontend/out/
 frontend/dist/
+# Production frontend export target (next.config distDir + tauri frontendDist resolve to repo-root/dist)
+/dist/
 frontend/src-tauri/target/
 frontend/src-tauri/gen/
 target/
+*.tsbuildinfo
 *.exe
 *.dll
 *.dylib

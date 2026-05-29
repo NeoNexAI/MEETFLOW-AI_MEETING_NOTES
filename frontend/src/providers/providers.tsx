@@ -51,12 +51,18 @@ export function Providers({ children }: ProvidersProps) {
   const [locale, setLocale] = useState<Locale>(defaultLocale);
   const messages = useLocaleMessages(locale);
 
-  // Read locale from localStorage on mount
+  // Read locale from localStorage on mount, and react to live changes from the
+  // Settings language switcher (dispatched as a `meetflow:locale` event) so the
+  // UI re-localizes without a full reload.
   useEffect(() => {
-    const stored = localStorage.getItem("meetflow-locale") as Locale | null;
-    if (stored && (stored === "en" || stored === "es")) {
-      setLocale(stored);
-    }
+    const apply = (value: string | null) => {
+      if (value === "en" || value === "es") setLocale(value);
+    };
+    apply(localStorage.getItem("meetflow-locale"));
+
+    const onLocale = (e: Event) => apply((e as CustomEvent<string>).detail);
+    window.addEventListener("meetflow:locale", onLocale);
+    return () => window.removeEventListener("meetflow:locale", onLocale);
   }, []);
 
   return (

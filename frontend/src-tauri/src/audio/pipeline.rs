@@ -149,7 +149,12 @@ impl RecordingPipeline {
                 if !is_paused {
                     // Drain buffer and write to WAV
                     let samples = {
-                        let mut buf = buffer_clone.lock().unwrap();
+                        // Recover from a poisoned mutex instead of panicking the
+                        // audio-write thread (which would abort the whole app in
+                        // release builds, where panic = "abort").
+                        let mut buf = buffer_clone
+                            .lock()
+                            .unwrap_or_else(|poisoned| poisoned.into_inner());
                         buf.drain(..).collect::<Vec<f32>>()
                     };
 

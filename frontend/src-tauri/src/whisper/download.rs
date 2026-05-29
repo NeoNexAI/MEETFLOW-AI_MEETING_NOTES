@@ -1,4 +1,7 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use futures::StreamExt;
 use sha2::{Digest, Sha256};
@@ -116,9 +119,19 @@ pub async fn download_model(
 }
 
 /// Verify SHA256 checksum of a downloaded file.
-fn verify_checksum(path: &PathBuf, expected: &str) -> Result<(), MeetflowError> {
-    // Skip verification for placeholder checksums (dev builds)
-    if expected.len() < 32 {
+///
+/// A valid SHA256 hex digest is exactly 64 characters. Any other length is
+/// treated as "not yet pinned" — verification is skipped with a warning rather
+/// than failing the download. This prevents placeholder or wrong-length values
+/// in the catalog from making a model permanently uninstallable.
+/// See `docs/playbooks/release.md` for how to pin real checksums before GA.
+fn verify_checksum(path: &Path, expected: &str) -> Result<(), MeetflowError> {
+    if expected.len() != 64 {
+        tracing::warn!(
+            "SHA256 not pinned for {} (got {} chars) — skipping integrity check",
+            path.display(),
+            expected.len()
+        );
         return Ok(());
     }
 
