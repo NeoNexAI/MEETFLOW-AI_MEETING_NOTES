@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import {
   FolderOpen,
   Trash2,
@@ -39,7 +39,13 @@ import { toast } from "sonner";
 
 export default function SettingsPage() {
   const t = useTranslations("settings");
-  const [tab, setTab] = useState("ai");
+  const locale = useLocale();
+  const [tab, setTab] = useState("general");
+
+  const changeLanguage = (next: string) => {
+    localStorage.setItem("meetflow-locale", next);
+    window.dispatchEvent(new CustomEvent("meetflow:locale", { detail: next }));
+  };
   const [dataDir, setDataDir] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -112,11 +118,30 @@ export default function SettingsPage() {
         <Tabs value={tab} onValueChange={setTab} className="flex flex-col">
           <div className="px-5 pt-3 border-b border-[var(--border-subtle)]">
             <TabsList className="gap-0.5">
+              <TabsTrigger value="general">{t("tabs.general")}</TabsTrigger>
               <TabsTrigger value="ai">{t("tabs.ai")}</TabsTrigger>
               <TabsTrigger value="privacy">{t("tabs.privacy")}</TabsTrigger>
               <TabsTrigger value="about">{t("tabs.about")}</TabsTrigger>
             </TabsList>
           </div>
+
+          {/* ── General ── */}
+          <TabsContent value="general" className="px-5 py-5 space-y-5">
+            <section className="space-y-3">
+              <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
+                {t("general.language")}
+              </label>
+              <Select value={locale} onValueChange={changeLanguage}>
+                <SelectTrigger className="max-w-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="es">Español</SelectItem>
+                </SelectContent>
+              </Select>
+            </section>
+          </TabsContent>
 
           {/* ── AI & Summaries ── */}
           <TabsContent value="ai" className="px-5 py-5 space-y-5">

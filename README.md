@@ -27,9 +27,9 @@ to anyone unless you explicitly configure a cloud provider.
 - 📝 **Local transcription** — whisper.cpp with downloadable models (tiny / small / medium / large-v3-turbo)
 - 🧠 **AI summaries** — local Ollama or your own Claude / OpenAI / Groq API key
 - 📋 **Action items extraction** — auto-detected from transcript
-- 📓 **Block-based notes editor** — write alongside the transcript (BlockNote)
-- 📤 **Export** — Markdown, PDF, JSON
-- 🌍 **Multi-language UI** — English + Spanish from day one
+- 📓 **Notes editor** — write alongside the transcript, autosaved
+- 📤 **Export** — Markdown (PDF & JSON planned)
+- 🌍 **Multi-language UI** — English + Spanish, switchable in Settings
 - 🌑 **Ultra-dark premium design** — Linear/Vercel-inspired, no generic gray dashboards
 
 ## Coming in v0.2

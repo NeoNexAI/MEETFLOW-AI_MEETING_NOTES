@@ -74,14 +74,14 @@ seguridad/privacidad, completar Settings, y sentar la base freemium.
 - ✅ i18n hardcodeados + error boundaries
 
 ### Fase 2 — Seguridad, privacidad & honestidad de producto 🚧
-- 🚧 Cifrar/segregar API keys fuera de la DB
-- 🚧 Alinear README con la realidad (o implementar lo prometido)
+- ⬜ Cifrar/segregar API keys fuera de la DB
+- ✅ Alinear README con la realidad (notas autosaved; export = Markdown, PDF/JSON planned)
 - ⬜ Migrar `next lint` → ESLint CLI (Next 16-ready)
 
 ### Fase 3 — Completar UX v0.1 🚧
-- 🚧 Settings: tab General (selector idioma + tema)
-- 🚧 Settings: tab Audio (selección de micrófono — el comando ya existe)
-- 🚧 Settings: tab Transcription (gestión de modelos Whisper)
+- ✅ Settings: tab **General** con selector de idioma EN/ES (cambio en vivo vía evento)
+- ⬜ Settings: tab Audio (selección de micrófono — el comando ya existe)
+- ⬜ Settings: tab Transcription (gestión de modelos Whisper)
 - ⬜ Notas: BlockNote real (o JSON export como alternativa de valor)
 
 ### Fase 4 — Freemium / monetización 🚧 (ver ADR-002)
