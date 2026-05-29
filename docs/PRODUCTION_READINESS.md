@@ -90,10 +90,17 @@ seguridad/privacidad, completar Settings, y sentar la base freemium.
 - 🚧 UI "Upgrade to Pro" + enlace de checkout (Stripe Payment Link)
 - ⬜ Gating de features Pro (modelos grandes, providers cloud, exports avanzados)
 
-### Fase 5 — Testing & calidad ⬜
-- ⬜ Tests unitarios Rust (parser de summary, helpers DB, verificación de licencia)
+### Fase 5 — Testing & calidad 🚧
+- 🚧 Tests unitarios Rust: ✅ parser de summary + `truncate_transcript` (7 tests).
+  Pendiente: helpers DB, verificación de licencia.
 - ⬜ Playwright smoke (render de rutas con dev server)
 - ⬜ Cobertura objetivo >80% en módulos core
+
+> Bugs de correctitud detectados y corregidos al escribir los tests:
+> - `parse_summary_response` paniqueaba con un fence ```` ```json ```` sin cierre
+>   (`raw[start+7..end]` con `start>end`). Ahora extrae el objeto `{…}` directamente.
+> - `truncate_transcript` paniqueaba al cortar a mitad de un carácter UTF-8
+>   multibyte (acentos ES). Ahora retrocede a un límite de carácter válido.
 
 ### Fase 6 — Distribución ⬜
 - ⬜ Pinear checksums SHA256 reales de modelos (runbook)

@@ -50,24 +50,28 @@ pub async fn generate_summary(
 
 fn truncate_transcript(text: &str, max_chars: usize) -> &str {
     if text.len() <= max_chars {
-        text
-    } else {
-        // Cut at last word boundary
-        let cut = &text[..max_chars];
-        cut.rfind(char::is_whitespace)
-            .map(|i| &text[..i])
-            .unwrap_or(cut)
+        return text;
     }
+    // Back off to a valid UTF-8 char boundary so we never slice through a
+    // multi-byte character (e.g. accented Spanish text would otherwise panic),
+    // then cut at the last word boundary to avoid splitting a word.
+    let mut end = max_chars;
+    while end > 0 && !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    let cut = &text[..end];
+    cut.rfind(char::is_whitespace)
+        .map(|i| &text[..i])
+        .unwrap_or(cut)
 }
 
 fn parse_summary_response(raw: &str) -> Result<GenerateSummaryResponse, serde_json::Error> {
-    // Extract JSON block if wrapped in markdown code fences
-    let json_str = if let (Some(start), Some(end)) = (raw.find("```json"), raw.rfind("```")) {
-        raw[start + 7..end].trim()
-    } else if let (Some(start), Some(end)) = (raw.find('{'), raw.rfind('}')) {
-        &raw[start..=end]
-    } else {
-        raw.trim()
+    // Models often wrap JSON in prose or ```json fences. Extract the outermost
+    // {...} object directly — this ignores fences (which sit outside the braces)
+    // and is panic-safe even when the closing fence is missing.
+    let json_str = match (raw.find('{'), raw.rfind('}')) {
+        (Some(start), Some(end)) if end > start => &raw[start..=end],
+        _ => raw.trim(),
     };
 
     serde_json::from_str(json_str)
@@ -108,5 +112,73 @@ pub fn to_db_summary(
         provider,
         model,
         created_at: chrono::Utc::now().timestamp_millis(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const VALID_JSON: &str = r#"{
+        "executiveSummary": "Discussed Q1 launch and budget.",
+        "actionItems": [
+            {"text": "Ana drafts mockups", "assignee": "Ana", "due": "2026-06-01", "done": false}
+        ],
+        "topics": ["launch", "budget"],
+        "sentiment": "positive",
+        "score": 85
+    }"#;
+
+    #[test]
+    fn parses_bare_json() {
+        let r = parse_summary_response(VALID_JSON).expect("should parse");
+        assert_eq!(r.score, 85);
+        assert_eq!(r.sentiment, "positive");
+        assert_eq!(r.action_items.len(), 1);
+        assert_eq!(r.action_items[0].assignee.as_deref(), Some("Ana"));
+        assert_eq!(r.topics, vec!["launch", "budget"]);
+    }
+
+    #[test]
+    fn parses_json_wrapped_in_markdown_fence() {
+        let fenced = format!("Here is the summary:\n```json\n{VALID_JSON}\n```\nDone.");
+        let r = parse_summary_response(&fenced).expect("should parse fenced json");
+        assert_eq!(r.executive_summary, "Discussed Q1 launch and budget.");
+    }
+
+    #[test]
+    fn does_not_panic_on_unclosed_fence() {
+        // Regression: previously `raw[start+7..end]` panicked when the closing
+        // fence was missing (find("```json") == rfind("```")).
+        let unclosed = format!("```json\n{VALID_JSON}");
+        let r = parse_summary_response(&unclosed).expect("should still parse");
+        assert_eq!(r.score, 85);
+    }
+
+    #[test]
+    fn errors_on_non_json() {
+        assert!(parse_summary_response("no json here").is_err());
+    }
+
+    #[test]
+    fn truncate_keeps_short_text_intact() {
+        assert_eq!(truncate_transcript("hello world", 100), "hello world");
+    }
+
+    #[test]
+    fn truncate_cuts_on_word_boundary() {
+        let out = truncate_transcript("alpha beta gamma delta", 13);
+        // 13 chars -> "alpha beta ga"; cut back to last whitespace -> "alpha beta"
+        assert_eq!(out, "alpha beta");
+        assert!(out.len() <= 13);
+    }
+
+    #[test]
+    fn truncate_does_not_panic_on_multibyte_boundary() {
+        // "café" repeated — 'é' is 2 bytes; a byte-index cut could land mid-char.
+        let text = "café ".repeat(50);
+        for limit in 1..text.len() {
+            let _ = truncate_transcript(&text, limit); // must never panic
+        }
     }
 }
