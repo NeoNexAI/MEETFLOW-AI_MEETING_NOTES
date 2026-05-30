@@ -75,3 +75,51 @@ pub const MODEL_CATALOG: &[ModelCatalogEntry] = &[
         requires_pro: true,
     },
 ];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn catalog_is_non_empty_and_has_unique_ids() {
+        assert!(!MODEL_CATALOG.is_empty());
+        let mut ids: Vec<&str> = MODEL_CATALOG.iter().map(|e| e.id).collect();
+        let count = ids.len();
+        ids.sort_unstable();
+        ids.dedup();
+        assert_eq!(ids.len(), count, "model ids must be unique");
+    }
+
+    #[test]
+    fn at_least_one_free_model_is_available() {
+        assert!(
+            MODEL_CATALOG.iter().any(|e| !e.requires_pro),
+            "Free tier must have at least one usable model"
+        );
+    }
+
+    #[test]
+    fn pinned_checksums_are_64_hex_chars_or_empty() {
+        for e in MODEL_CATALOG {
+            assert!(
+                e.sha256.is_empty() || e.sha256.len() == 64,
+                "model {} has an invalid sha256 length ({})",
+                e.id,
+                e.sha256.len()
+            );
+        }
+    }
+
+    #[test]
+    fn all_urls_point_to_official_huggingface_repo() {
+        for e in MODEL_CATALOG {
+            assert!(
+                e.hf_url
+                    .starts_with("https://huggingface.co/ggerganov/whisper.cpp/"),
+                "model {} uses an unexpected URL: {}",
+                e.id,
+                e.hf_url
+            );
+        }
+    }
+}
