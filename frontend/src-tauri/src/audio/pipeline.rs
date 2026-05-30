@@ -64,10 +64,12 @@ pub struct RecordingPipeline;
 
 impl RecordingPipeline {
     /// Start a new recording. Returns a handle for controlling it.
+    /// `device_name` selects the input microphone; `None` uses the OS default.
     pub async fn start(
         meeting_id: String,
         audio_path: PathBuf,
         transcript_tx: watch::Sender<String>,
+        device_name: Option<String>,
     ) -> Result<RecordingHandle, MeetflowError> {
         let buffer: AudioBuffer = Arc::new(Mutex::new(Vec::new()));
         let buffer_clone = buffer.clone();
@@ -98,7 +100,10 @@ impl RecordingPipeline {
             };
 
             // Start the microphone stream (lives on this thread for its entire lifetime)
-            let _stream = match CaptureStream::start_microphone(buffer_clone.clone()) {
+            let _stream = match CaptureStream::start_microphone_by_name(
+                buffer_clone.clone(),
+                device_name.as_deref(),
+            ) {
                 Ok(s) => s,
                 Err(e) => {
                     tracing::error!("Failed to start microphone: {e}");

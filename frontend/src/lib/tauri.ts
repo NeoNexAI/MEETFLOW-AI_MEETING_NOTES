@@ -259,3 +259,33 @@ export const listOllamaModels = (
   baseUrl?: string,
 ): Promise<string[]> =>
   invoke("list_ollama_models", { baseUrl: baseUrl ?? null });
+
+// ─── Licensing (freemium, mirrors src-tauri/src/licensing) ──────────────────
+
+export type Tier = "free" | "pro";
+
+export interface Entitlements {
+  cloudLlm: boolean;
+  largeModels: boolean;
+  advancedExport: boolean;
+  integrations: boolean;
+}
+
+export interface LicenseStatus {
+  tier: Tier;
+  email: string | null;
+  entitlements: Entitlements;
+  valid: boolean;
+}
+
+/** Get the current license status (Free if none/invalid). */
+export const getLicenseStatus = (): Promise<LicenseStatus> =>
+  invoke("get_license_status");
+
+/** Verify + activate a license key. Rejects if the key is invalid. */
+export const activateLicense = (key: string): Promise<LicenseStatus> =>
+  invoke("activate_license", { key });
+
+/** Remove the stored license, reverting to Free. */
+export const deactivateLicense = (): Promise<void> =>
+  invoke("deactivate_license");

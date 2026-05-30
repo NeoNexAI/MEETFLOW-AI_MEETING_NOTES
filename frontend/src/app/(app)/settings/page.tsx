@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { listen } from "@tauri-apps/api/event";
 import {
   FolderOpen,
   Trash2,
@@ -12,6 +13,7 @@ import {
   Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -31,20 +33,121 @@ import {
   deleteAllData,
   testLlmConnection,
   listOllamaModels,
+  getAudioDevices,
+  listWhisperModels,
+  downloadWhisperModel,
+  getLicenseStatus,
+  activateLicense,
+  deactivateLicense,
+  type AudioDeviceInfo,
+  type ModelStatus,
+  type LicenseStatus,
   type LlmConfig,
   type LlmProvider,
   defaultLlmConfig,
 } from "@/lib/tauri";
 import { toast } from "sonner";
 
+/**
+ * Stripe Payment Link for the Pro upgrade. Replace with the operator's real
+ * Payment Link before release (see docs/playbooks/release.md). After purchase,
+ * the buyer receives a license key by email and pastes it below.
+ */
+const STRIPE_CHECKOUT_URL = "https://buy.stripe.com/test_meetflow_pro";
+
 export default function SettingsPage() {
   const t = useTranslations("settings");
+  const tc = useTranslations("common.button");
   const locale = useLocale();
   const [tab, setTab] = useState("general");
+
+  // ── Audio + Transcription state ──
+  const [audioDevices, setAudioDevices] = useState<AudioDeviceInfo[]>([]);
+  const [inputDevice, setInputDevice] = useState("");
+  const [models, setModels] = useState<ModelStatus[]>([]);
+  const [activeModel, setActiveModel] = useState("");
+  const [downloading, setDownloading] = useState<string | null>(null);
+
+  // ── Licensing (freemium) state ──
+  const [license, setLicense] = useState<LicenseStatus | null>(null);
+  const [licenseKey, setLicenseKey] = useState("");
+  const [activating, setActivating] = useState(false);
+
+  const refreshModels = () => {
+    listWhisperModels().then(setModels).catch(() => {});
+  };
+
+  useEffect(() => {
+    getAudioDevices()
+      .then((d) => setAudioDevices(d.filter((x) => x.kind === "input")))
+      .catch(() => {});
+    getSetting("audio_input_device").then((v) => setInputDevice(v ?? "")).catch(() => {});
+    getSetting("whisper_model").then((v) => setActiveModel(v ?? "")).catch(() => {});
+    getLicenseStatus().then(setLicense).catch(() => {});
+    refreshModels();
+  }, []);
+
+  // Refresh the model list when a download finishes or fails.
+  useEffect(() => {
+    const done = listen("model-download-complete", () => {
+      setDownloading(null);
+      refreshModels();
+      toast.success(t("transcription.downloaded"));
+    });
+    const err = listen<{ error?: string }>("model-download-error", (e) => {
+      setDownloading(null);
+      toast.error(e.payload?.error ?? "Download failed");
+    });
+    return () => {
+      done.then((u) => u());
+      err.then((u) => u());
+    };
+  }, [t]);
 
   const changeLanguage = (next: string) => {
     localStorage.setItem("meetflow-locale", next);
     window.dispatchEvent(new CustomEvent("meetflow:locale", { detail: next }));
+  };
+
+  const changeInputDevice = (name: string) => {
+    setInputDevice(name);
+    void setSetting("audio_input_device", name).catch(() => {});
+  };
+
+  const changeActiveModel = (id: string) => {
+    setActiveModel(id);
+    void setSetting("whisper_model", id).catch(() => {});
+  };
+
+  const handleDownloadModel = (id: string) => {
+    setDownloading(id);
+    downloadWhisperModel(id).catch((e) => {
+      setDownloading(null);
+      toast.error(`${e}`);
+    });
+  };
+
+  const handleActivate = async () => {
+    setActivating(true);
+    try {
+      const status = await activateLicense(licenseKey);
+      setLicense(status);
+      setLicenseKey("");
+      toast.success(t("plan.activated"));
+    } catch {
+      toast.error(t("plan.invalid"));
+    } finally {
+      setActivating(false);
+    }
+  };
+
+  const handleDeactivate = async () => {
+    try {
+      await deactivateLicense();
+      setLicense(await getLicenseStatus());
+    } catch (e) {
+      toast.error(`${e}`);
+    }
   };
   const [dataDir, setDataDir] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState(false);
@@ -119,7 +222,10 @@ export default function SettingsPage() {
           <div className="px-5 pt-3 border-b border-[var(--border-subtle)]">
             <TabsList className="gap-0.5">
               <TabsTrigger value="general">{t("tabs.general")}</TabsTrigger>
+              <TabsTrigger value="audio">{t("tabs.audio")}</TabsTrigger>
+              <TabsTrigger value="transcription">{t("tabs.transcription")}</TabsTrigger>
               <TabsTrigger value="ai">{t("tabs.ai")}</TabsTrigger>
+              <TabsTrigger value="plan">{t("tabs.plan")}</TabsTrigger>
               <TabsTrigger value="privacy">{t("tabs.privacy")}</TabsTrigger>
               <TabsTrigger value="about">{t("tabs.about")}</TabsTrigger>
             </TabsList>
@@ -138,6 +244,98 @@ export default function SettingsPage() {
                 <SelectContent>
                   <SelectItem value="en">English</SelectItem>
                   <SelectItem value="es">Español</SelectItem>
+                </SelectContent>
+              </Select>
+            </section>
+          </TabsContent>
+
+          {/* ── Audio ── */}
+          <TabsContent value="audio" className="px-5 py-5 space-y-5">
+            <section className="space-y-3">
+              <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
+                {t("audio.microphone")}
+              </label>
+              <Select
+                value={inputDevice || "__default__"}
+                onValueChange={(v) => changeInputDevice(v === "__default__" ? "" : v)}
+              >
+                <SelectTrigger className="max-w-md">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__default__">{t("audio.default_device")}</SelectItem>
+                  {audioDevices.map((d) => (
+                    <SelectItem key={d.id} value={d.name}>
+                      {d.name}
+                      {d.isDefault ? ` (${t("audio.default_device")})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-[var(--text-tertiary)]">{t("audio.hint")}</p>
+            </section>
+          </TabsContent>
+
+          {/* ── Transcription ── */}
+          <TabsContent value="transcription" className="px-5 py-5 space-y-5">
+            <section className="space-y-3">
+              <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
+                {t("transcription.download_models")}
+              </label>
+              <div className="space-y-2">
+                {models.map((m) => (
+                  <div
+                    key={m.id}
+                    className="flex items-center justify-between rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2.5"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-[var(--text-primary)]">
+                        {m.displayName}
+                      </p>
+                      <p className="text-xs text-[var(--text-tertiary)]">
+                        {m.sizeMb} MB · {m.accuracy}
+                      </p>
+                    </div>
+                    {m.downloaded ? (
+                      <Badge variant="secondary">{t("transcription.downloaded")}</Badge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        loading={downloading === m.id}
+                        disabled={downloading !== null}
+                        onClick={() => handleDownloadModel(m.id)}
+                      >
+                        {tc("download")}
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <Separator />
+
+            <section className="space-y-3">
+              <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
+                {t("transcription.model")}
+              </label>
+              <Select
+                value={activeModel || "__auto__"}
+                onValueChange={(v) => changeActiveModel(v === "__auto__" ? "" : v)}
+              >
+                <SelectTrigger className="max-w-md">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__auto__">{t("transcription.auto_detect")}</SelectItem>
+                  {models
+                    .filter((m) => m.downloaded)
+                    .map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.displayName}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </section>
@@ -229,6 +427,68 @@ export default function SettingsPage() {
               {testState === "failed" && <XCircle className="w-3.5 h-3.5 text-[var(--error)]" />}
               {t("ai.test")}
             </Button>
+          </TabsContent>
+
+          {/* ── Plan & licensing ── */}
+          <TabsContent value="plan" className="px-5 py-5 space-y-5">
+            <section className="flex items-center justify-between rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">
+                  {license?.tier === "pro" ? t("plan.current_pro") : t("plan.current_free")}
+                </p>
+                {license?.email && (
+                  <p className="text-xs text-[var(--text-tertiary)]">{license.email}</p>
+                )}
+              </div>
+              <Badge variant={license?.tier === "pro" ? "default" : "secondary"}>
+                {license?.tier === "pro" ? "Pro" : "Free"}
+              </Badge>
+            </section>
+
+            {license?.tier === "pro" ? (
+              <section className="space-y-3">
+                <Button variant="outline" size="sm" onClick={handleDeactivate}>
+                  {t("plan.deactivate")}
+                </Button>
+              </section>
+            ) : (
+              <>
+                <section className="space-y-2">
+                  <p className="text-sm text-[var(--text-secondary)]">{t("plan.upgrade_hint")}</p>
+                  <a href={STRIPE_CHECKOUT_URL} target="_blank" rel="noopener noreferrer">
+                    <Button variant="default" size="sm" className="gap-2">
+                      {t("plan.upgrade")}
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </Button>
+                  </a>
+                </section>
+
+                <Separator />
+
+                <section className="space-y-3">
+                  <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
+                    {t("plan.key_label")}
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={licenseKey}
+                      onChange={(e) => setLicenseKey(e.target.value)}
+                      placeholder={t("plan.key_placeholder")}
+                      className="flex-1 font-mono text-xs"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      loading={activating}
+                      disabled={!licenseKey.trim()}
+                      onClick={handleActivate}
+                    >
+                      {t("plan.activate")}
+                    </Button>
+                  </div>
+                </section>
+              </>
+            )}
           </TabsContent>
 
           {/* ── Privacy ── */}

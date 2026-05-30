@@ -16,12 +16,29 @@ pub struct CaptureStream {
 }
 
 impl CaptureStream {
-    /// Start capturing the default microphone into `buffer`.
-    pub fn start_microphone(buffer: AudioBuffer) -> Result<Self, MeetflowError> {
+    /// Start capturing a specific input device by name into `buffer`.
+    /// Falls back to the default input device when `device_name` is `None` or
+    /// no device with that name is found.
+    pub fn start_microphone_by_name(
+        buffer: AudioBuffer,
+        device_name: Option<&str>,
+    ) -> Result<Self, MeetflowError> {
         let host = cpal::default_host();
-        let device = host
-            .default_input_device()
-            .ok_or_else(|| MeetflowError::Audio("No default microphone found".into()))?;
+
+        let device = match device_name {
+            Some(name) => host
+                .input_devices()
+                .map_err(|e| MeetflowError::Audio(e.to_string()))?
+                .find(|d| d.name().map(|n| n == name).unwrap_or(false))
+                .or_else(|| {
+                    tracing::warn!("Input device '{name}' not found — using default");
+                    host.default_input_device()
+                })
+                .ok_or_else(|| MeetflowError::Audio("No microphone available".into()))?,
+            None => host
+                .default_input_device()
+                .ok_or_else(|| MeetflowError::Audio("No default microphone found".into()))?,
+        };
 
         let config = device
             .default_input_config()

@@ -193,8 +193,22 @@ pub async fn transcribe_meeting(
         audio_path.ok_or_else(|| MeetflowError::NotFound("Meeting has no audio file".into()))?;
 
     // ── 2. Resolve model path (async-safe fs check) ───────────────────────────
+    // Prefer the active model chosen in Settings → Transcription, if it is
+    // actually downloaded; otherwise fall back to the first available model.
+    let preferred_model: Option<String> = {
+        let conn =
+            db.0.lock()
+                .map_err(|_| MeetflowError::Db("Lock poisoned".into()))?;
+        conn.query_row(
+            "SELECT value FROM settings WHERE key = 'whisper_model'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .ok()
+        .filter(|s| !s.is_empty())
+    };
     let models_dir = storage::models_dir(&app)?;
-    let model_path = find_first_downloaded_model(&models_dir)?;
+    let model_path = resolve_model_path(&models_dir, preferred_model.as_deref())?;
 
     // ── 3. Get cached context (loads from disk once, reuses forever after) ────
     let ctx = model_cache.get_or_load(&model_path)?;
@@ -249,6 +263,25 @@ pub async fn transcribe_meeting(
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/// Resolve which model file to use: the `preferred` model if it is in the
+/// catalog and downloaded, otherwise the first available downloaded model.
+fn resolve_model_path(
+    models_dir: &Path,
+    preferred: Option<&str>,
+) -> Result<PathBuf, MeetflowError> {
+    if let Some(id) = preferred {
+        if MODEL_CATALOG.iter().any(|e| e.id == id) {
+            let path = models_dir.join(format!("ggml-{id}.bin"));
+            if path.exists() {
+                tracing::info!("Using selected model: {}", path.display());
+                return Ok(path);
+            }
+            tracing::warn!("Selected model '{id}' not downloaded — falling back");
+        }
+    }
+    find_first_downloaded_model(models_dir)
+}
 
 fn find_first_downloaded_model(models_dir: &Path) -> Result<PathBuf, MeetflowError> {
     for entry in MODEL_CATALOG {

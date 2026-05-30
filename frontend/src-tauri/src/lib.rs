@@ -2,6 +2,7 @@ mod audio;
 mod commands;
 mod db;
 mod error;
+pub mod licensing;
 mod llm;
 mod storage;
 mod whisper;
@@ -82,6 +83,10 @@ pub fn run() {
             commands::llm::test_llm_connection,
             commands::llm::generate_meeting_summary,
             commands::llm::list_ollama_models,
+            // Licensing (freemium)
+            commands::license::get_license_status,
+            commands::license::activate_license,
+            commands::license::deactivate_license,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {

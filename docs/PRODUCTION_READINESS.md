@@ -73,10 +73,12 @@ seguridad/privacidad, completar Settings, y sentar la base freemium.
 - ✅ Saneo de `unwrap/expect`
 - ✅ i18n hardcodeados + error boundaries
 
-### Fase 2 — Seguridad, privacidad & honestidad de producto 🚧
-- ⬜ Cifrar/segregar API keys fuera de la DB
+### Fase 2 — Seguridad, privacidad & honestidad de producto ✅
+- ✅ Cifrado en reposo (AES-256-GCM) de `llm_config` (API keys) con migración de
+  valores legacy en texto plano; clave local en `secret.key`. `storage::secrets`.
 - ✅ Alinear README con la realidad (notas autosaved; export = Markdown, PDF/JSON planned)
 - ⬜ Migrar `next lint` → ESLint CLI (Next 16-ready)
+- ⬜ Futuro: clave de cifrado en OS keychain/DPAPI (hoy junto a la DB)
 
 ### Fase 3 — Completar UX v0.1 🚧
 - ✅ Settings: tab **General** con selector de idioma EN/ES (cambio en vivo vía evento)
@@ -84,11 +86,14 @@ seguridad/privacidad, completar Settings, y sentar la base freemium.
 - ⬜ Settings: tab Transcription (gestión de modelos Whisper)
 - ⬜ Notas: BlockNote real (o JSON export como alternativa de valor)
 
-### Fase 4 — Freemium / monetización 🚧 (ver ADR-002)
-- 🚧 Módulo `licensing` Rust: entitlements free/Pro
-- 🚧 Activación por clave de licencia firmada (verificación offline ed25519)
-- 🚧 UI "Upgrade to Pro" + enlace de checkout (Stripe Payment Link)
-- ⬜ Gating de features Pro (modelos grandes, providers cloud, exports avanzados)
+### Fase 4 — Freemium / monetización ✅ (ver ADR-002)
+- ✅ Módulo `licensing` Rust: `Tier` free/Pro + `Entitlements` (6 tests)
+- ✅ Activación por clave de licencia firmada Ed25519, verificación 100% offline
+- ✅ Comandos `get/activate/deactivate_license` + wrappers TS
+- ✅ UI Settings → Plan: estado, activación, enlace de checkout (Stripe Payment Link)
+- ✅ Herramienta operador `examples/gen_license.rs` + runbook `docs/playbooks/release.md`
+- ⬜ Gating efectivo en la UI sobre `entitlements` (cloud_llm, large_models…) — siguiente paso
+- ⬜ Webhook Stripe → emisión/email de clave (backend mínimo del operador)
 
 ### Fase 5 — Testing & calidad 🚧
 - 🚧 Tests unitarios Rust: ✅ parser de summary + `truncate_transcript` (7 tests).

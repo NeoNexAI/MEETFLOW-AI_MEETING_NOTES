@@ -266,8 +266,21 @@
       "audio": "Audio",
       "transcription": "Transcripción",
       "ai": "IA y Resúmenes",
+      "plan": "Plan",
       "privacy": "Privacidad",
       "about": "Acerca de"
+    },
+    "plan": {
+      "current_free": "Plan Free",
+      "current_pro": "Plan Pro",
+      "upgrade": "Hazte Pro",
+      "upgrade_hint": "Desbloquea proveedores de IA en la nube, modelos Whisper grandes y exportaciones avanzadas.",
+      "key_label": "Clave de licencia",
+      "key_placeholder": "Pega tu clave de licencia",
+      "activate": "Activar",
+      "activated": "Pro activado — ¡gracias!",
+      "invalid": "Clave de licencia inválida o expirada",
+      "deactivate": "Quitar licencia"
     },
     "general": {
       "language": "Idioma de la interfaz",
@@ -283,13 +296,16 @@
       "microphone": "Micrófono",
       "system_audio": "Audio del sistema",
       "test": "Probar audio",
-      "gain": "Ganancia de entrada"
+      "gain": "Ganancia de entrada",
+      "default_device": "Predeterminado del sistema",
+      "hint": "Se aplica a tu próxima grabación."
     },
     "transcription": {
       "model": "Modelo activo",
       "language": "Idioma",
       "auto_detect": "Detección automática",
-      "download_models": "Gestionar modelos"
+      "download_models": "Gestionar modelos",
+      "downloaded": "Descargado"
     },
     "ai": {
       "provider": "Proveedor de resúmenes",
