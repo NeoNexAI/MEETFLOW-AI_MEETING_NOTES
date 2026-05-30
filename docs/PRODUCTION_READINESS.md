@@ -115,11 +115,15 @@ seguridad/privacidad, completar Settings, y sentar la base freemium.
 > - `truncate_transcript` paniqueaba al cortar a mitad de un carácter UTF-8
 >   multibyte (acentos ES). Ahora retrocede a un límite de carácter válido.
 
-### Fase 6 — Distribución ⬜
-- ⬜ Pinear checksums SHA256 reales de modelos (runbook)
-- ⬜ Firma de código + clave de actualización Tauri
+### Fase 6 — Distribución 🚧
+- ✅ CHANGELOG v0.1.0 redactado + `docs/status.md` actualizado al estado real
+- ✅ Runbook de release (`docs/playbooks/release.md`) con los pasos del operador
+- ⬜ **(operador)** Pinear checksums SHA256 reales de modelos
+- ⬜ **(operador)** Par de claves Ed25519 de producción + `LICENSE_PUBLIC_KEY_HEX`
+- ⬜ **(operador)** Stripe Payment Link real (opcional para el tag)
+- ⬜ Firma de código + clave de actualización Tauri (post-v0.1)
 - ⬜ Tag `v0.1.0` → workflow `release.yml` → instalador NSIS en GitHub Releases
-- ⬜ README con GIF demo
+- ⬜ README con GIF demo (post-build)
 
 ---
 
