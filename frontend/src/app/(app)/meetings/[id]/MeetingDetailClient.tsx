@@ -400,6 +400,8 @@ export default function MeetingDetailPage() {
   const deleteMutation = useDeleteMeeting();
   const updateTitle = useUpdateMeetingTitle();
   const exportMarkdown = useExportMarkdown();
+  const exportJson = useExportJson();
+  const { entitlements } = useLicense();
 
   const [showDelete, setShowDelete] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
