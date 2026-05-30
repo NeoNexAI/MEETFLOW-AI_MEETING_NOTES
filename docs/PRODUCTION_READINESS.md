@@ -96,7 +96,9 @@ seguridad/privacidad, completar Settings, y sentar la base freemium.
   resumen con provider cloud y descarga de modelos `requires_pro` rechazados en
   tier Free; UI muestra candados "Pro" en Settings (IA, Transcription) y onboarding.
 - ⬜ Webhook Stripe → emisión/email de clave (backend mínimo del operador)
-- ⬜ Gating de `advanced_export` / `integrations` (cuando lleguen PDF/JSON e integraciones)
+- ✅ Export JSON estructurado (Pro, `advanced_export`) — comando + UI gated
+- ⬜ Gating de `integrations` (cuando lleguen las integraciones v0.2)
+- ⬜ Export PDF (planned)
 
 ### Fase 5 — Testing & calidad 🚧
 - 🚧 Tests unitarios Rust: ✅ parser de summary + `truncate_transcript` (7 tests).

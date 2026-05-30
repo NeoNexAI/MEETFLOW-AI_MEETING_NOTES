@@ -211,6 +211,10 @@ export const saveNote = (
 export const exportMeetingMarkdown = (meetingId: string): Promise<string> =>
   invoke("export_meeting_markdown", { meetingId });
 
+/** Export a meeting as structured JSON (Pro feature). */
+export const exportMeetingJson = (meetingId: string): Promise<string> =>
+  invoke("export_meeting_json", { meetingId });
+
 // ─── Settings commands ───────────────────────────────────────────────────────
 
 export const getSetting = (key: string): Promise<string | null> =>

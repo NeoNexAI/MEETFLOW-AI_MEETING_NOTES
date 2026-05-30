@@ -28,7 +28,7 @@ to anyone unless you explicitly configure a cloud provider.
 - 🧠 **AI summaries** — local Ollama or your own Claude / OpenAI / Groq API key
 - 📋 **Action items extraction** — auto-detected from transcript
 - 📓 **Notes editor** — write alongside the transcript, autosaved
-- 📤 **Export** — Markdown (PDF & JSON planned)
+- 📤 **Export** — Markdown (free) · structured JSON (Pro) · PDF planned
 - 🌍 **Multi-language UI** — English + Spanish, switchable in Settings
 - 🌑 **Ultra-dark premium design** — Linear/Vercel-inspired, no generic gray dashboards
 
