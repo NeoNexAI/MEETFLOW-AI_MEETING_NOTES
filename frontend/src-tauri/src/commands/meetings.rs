@@ -318,3 +318,105 @@ pub fn export_meeting_markdown(
 
     Ok(md)
 }
+
+/// Export a meeting as structured JSON (Pro feature). Includes meeting metadata,
+/// summary (with parsed action items + topics), transcript and notes.
+#[tauri::command]
+pub fn export_meeting_json(
+    db: State<'_, DbPool>,
+    meeting_id: String,
+) -> Result<String, MeetflowError> {
+    // Advanced exports are a Pro-tier feature (Markdown export stays free).
+    if !crate::commands::license::current_entitlements(&db).advanced_export {
+        return Err(MeetflowError::InvalidInput(
+            "JSON export requires MeetFlow Pro. Upgrade in Settings → Plan.".into(),
+        ));
+    }
+
+    let conn =
+        db.0.lock()
+            .map_err(|_| MeetflowError::Db("Lock poisoned".into()))?;
+
+    let meeting: Meeting = conn
+        .query_row(
+            "SELECT id, title, started_at, ended_at, duration_sec, audio_path, language, created_at
+         FROM meetings WHERE id = ?1",
+            params![meeting_id],
+            |row| {
+                Ok(Meeting {
+                    id: row.get(0)?,
+                    title: row.get(1)?,
+                    started_at: row.get(2)?,
+                    ended_at: row.get(3)?,
+                    duration_sec: row.get(4)?,
+                    audio_path: row.get(5)?,
+                    language: row.get(6)?,
+                    created_at: row.get(7)?,
+                })
+            },
+        )
+        .map_err(|_| MeetflowError::NotFound(format!("Meeting {meeting_id} not found")))?;
+
+    let summary = conn
+        .query_row(
+            "SELECT executive_summary, action_items, topics, sentiment, score
+             FROM summaries WHERE meeting_id = ?1",
+            params![meeting_id],
+            |row| {
+                Ok((
+                    row.get::<_, Option<String>>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, Option<String>>(3)?,
+                    row.get::<_, Option<i64>>(4)?,
+                ))
+            },
+        )
+        .ok()
+        .map(|(exec, actions, topics, sentiment, score)| {
+            serde_json::json!({
+                "executiveSummary": exec,
+                "actionItems": serde_json::from_str::<Vec<ActionItem>>(&actions)
+                    .unwrap_or_default(),
+                "topics": serde_json::from_str::<Vec<String>>(&topics).unwrap_or_default(),
+                "sentiment": sentiment,
+                "score": score,
+            })
+        });
+
+    let transcript: Option<String> = conn
+        .query_row(
+            "SELECT content FROM transcripts WHERE meeting_id = ?1",
+            params![meeting_id],
+            |row| row.get(0),
+        )
+        .ok();
+
+    let notes: Option<String> = conn
+        .query_row(
+            "SELECT content FROM notes WHERE meeting_id = ?1",
+            params![meeting_id],
+            |row| row.get(0),
+        )
+        .ok();
+
+    let date = chrono::DateTime::from_timestamp_millis(meeting.started_at)
+        .map(|dt| dt.to_rfc3339())
+        .unwrap_or_default();
+
+    let value = serde_json::json!({
+        "meeting": {
+            "id": meeting.id,
+            "title": meeting.title,
+            "date": date,
+            "durationSec": meeting.duration_sec,
+            "language": meeting.language,
+        },
+        "summary": summary,
+        "transcript": transcript,
+        "notes": notes,
+    });
+
+    serde_json::to_string_pretty(&value)
+        .map_err(|e| MeetflowError::InvalidInput(format!("Failed to serialize JSON: {e}")))
+}

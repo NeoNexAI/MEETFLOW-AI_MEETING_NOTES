@@ -12,6 +12,7 @@ import {
   deleteMeeting,
   updateMeetingTitle,
   exportMeetingMarkdown,
+  exportMeetingJson,
   generateMeetingSummary,
   transcribeMeeting,
   type LlmConfig,
@@ -163,6 +164,25 @@ export function useExportMarkdown() {
       a.click();
       URL.revokeObjectURL(url);
       toast.success("Markdown exported");
+    },
+    onError: (err) => {
+      toast.error(`Export failed: ${err}`);
+    },
+  });
+}
+
+export function useExportJson() {
+  return useMutation({
+    mutationFn: (meetingId: string) => exportMeetingJson(meetingId),
+    onSuccess: (json) => {
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "meeting-notes.json";
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("JSON exported");
     },
     onError: (err) => {
       toast.error(`Export failed: ${err}`);

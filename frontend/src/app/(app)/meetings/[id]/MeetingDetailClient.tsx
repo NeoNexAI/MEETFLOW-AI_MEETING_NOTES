@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Trash2,
   Download,
+  FileJson,
   Loader2,
   Sparkles,
   CheckSquare,
@@ -39,8 +40,10 @@ import {
   useUpdateMeetingTitle,
   useGenerateSummary,
   useExportMarkdown,
+  useExportJson,
   useTranscribeMeeting,
 } from "@/hooks/useMeetings";
+import { useLicense } from "@/hooks/useLicense";
 import { listen } from "@tauri-apps/api/event";
 import { useQueryClient } from "@tanstack/react-query";
 import { meetingKeys } from "@/hooks/useMeetings";
@@ -397,6 +400,8 @@ export default function MeetingDetailPage() {
   const deleteMutation = useDeleteMeeting();
   const updateTitle = useUpdateMeetingTitle();
   const exportMarkdown = useExportMarkdown();
+  const exportJson = useExportJson();
+  const { entitlements } = useLicense();
 
   const [showDelete, setShowDelete] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -488,6 +493,17 @@ export default function MeetingDetailPage() {
             >
               <Download className="w-3.5 h-3.5" />
             </Button>
+            {entitlements.advancedExport && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => exportJson.mutate(meetingId)}
+                disabled={exportJson.isPending}
+                aria-label="Export JSON"
+              >
+                <FileJson className="w-3.5 h-3.5" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon-sm"
