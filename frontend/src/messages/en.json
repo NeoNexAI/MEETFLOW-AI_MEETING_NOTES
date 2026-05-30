@@ -266,8 +266,21 @@
       "audio": "Audio",
       "transcription": "Transcription",
       "ai": "AI & Summaries",
+      "plan": "Plan",
       "privacy": "Privacy",
       "about": "About"
+    },
+    "plan": {
+      "current_free": "Free plan",
+      "current_pro": "Pro plan",
+      "upgrade": "Upgrade to Pro",
+      "upgrade_hint": "Unlock cloud AI providers, large Whisper models and advanced exports.",
+      "key_label": "License key",
+      "key_placeholder": "Paste your license key",
+      "activate": "Activate",
+      "activated": "Pro activated — thank you!",
+      "invalid": "Invalid or expired license key",
+      "deactivate": "Remove license"
     },
     "general": {
       "language": "Interface language",

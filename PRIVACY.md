@@ -15,7 +15,7 @@ to our servers — because we don't operate any.
 | Notes & summaries | Same SQLite database | Never, unless you click Export |
 | Whisper models | `%APPDATA%\MeetFlow\models\` | N/A (downloaded from HuggingFace) |
 | OAuth tokens | OS-encrypted store (Tauri `plugin-store` + Windows DPAPI) | Only sent to the OAuth provider you connected |
-| API keys (Claude, OpenAI…) | OS-encrypted store | Only sent to the LLM provider you configured |
+| API keys (Claude, OpenAI…) | Encrypted at rest (AES-256-GCM) in the local config | Only sent to the LLM provider you configured |
 
 ## Optional cloud features (opt-in only)
 

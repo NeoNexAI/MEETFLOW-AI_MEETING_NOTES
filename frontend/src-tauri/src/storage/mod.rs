@@ -4,6 +4,8 @@ use tauri::Manager as _;
 
 use crate::error::MeetflowError;
 
+pub mod secrets;
+
 /// Resolves the base app data directory.
 /// Windows: `%APPDATA%\com.meetflow.app\`
 /// macOS:   `~/Library/Application Support/com.meetflow.app/`

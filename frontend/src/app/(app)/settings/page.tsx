@@ -36,13 +36,24 @@ import {
   getAudioDevices,
   listWhisperModels,
   downloadWhisperModel,
+  getLicenseStatus,
+  activateLicense,
+  deactivateLicense,
   type AudioDeviceInfo,
   type ModelStatus,
+  type LicenseStatus,
   type LlmConfig,
   type LlmProvider,
   defaultLlmConfig,
 } from "@/lib/tauri";
 import { toast } from "sonner";
+
+/**
+ * Stripe Payment Link for the Pro upgrade. Replace with the operator's real
+ * Payment Link before release (see docs/playbooks/release.md). After purchase,
+ * the buyer receives a license key by email and pastes it below.
+ */
+const STRIPE_CHECKOUT_URL = "https://buy.stripe.com/test_meetflow_pro";
 
 export default function SettingsPage() {
   const t = useTranslations("settings");
@@ -57,6 +68,11 @@ export default function SettingsPage() {
   const [activeModel, setActiveModel] = useState("");
   const [downloading, setDownloading] = useState<string | null>(null);
 
+  // ── Licensing (freemium) state ──
+  const [license, setLicense] = useState<LicenseStatus | null>(null);
+  const [licenseKey, setLicenseKey] = useState("");
+  const [activating, setActivating] = useState(false);
+
   const refreshModels = () => {
     listWhisperModels().then(setModels).catch(() => {});
   };
@@ -67,6 +83,7 @@ export default function SettingsPage() {
       .catch(() => {});
     getSetting("audio_input_device").then((v) => setInputDevice(v ?? "")).catch(() => {});
     getSetting("whisper_model").then((v) => setActiveModel(v ?? "")).catch(() => {});
+    getLicenseStatus().then(setLicense).catch(() => {});
     refreshModels();
   }, []);
 
@@ -108,6 +125,29 @@ export default function SettingsPage() {
       setDownloading(null);
       toast.error(`${e}`);
     });
+  };
+
+  const handleActivate = async () => {
+    setActivating(true);
+    try {
+      const status = await activateLicense(licenseKey);
+      setLicense(status);
+      setLicenseKey("");
+      toast.success(t("plan.activated"));
+    } catch {
+      toast.error(t("plan.invalid"));
+    } finally {
+      setActivating(false);
+    }
+  };
+
+  const handleDeactivate = async () => {
+    try {
+      await deactivateLicense();
+      setLicense(await getLicenseStatus());
+    } catch (e) {
+      toast.error(`${e}`);
+    }
   };
   const [dataDir, setDataDir] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState(false);
@@ -185,6 +225,7 @@ export default function SettingsPage() {
               <TabsTrigger value="audio">{t("tabs.audio")}</TabsTrigger>
               <TabsTrigger value="transcription">{t("tabs.transcription")}</TabsTrigger>
               <TabsTrigger value="ai">{t("tabs.ai")}</TabsTrigger>
+              <TabsTrigger value="plan">{t("tabs.plan")}</TabsTrigger>
               <TabsTrigger value="privacy">{t("tabs.privacy")}</TabsTrigger>
               <TabsTrigger value="about">{t("tabs.about")}</TabsTrigger>
             </TabsList>
@@ -386,6 +427,68 @@ export default function SettingsPage() {
               {testState === "failed" && <XCircle className="w-3.5 h-3.5 text-[var(--error)]" />}
               {t("ai.test")}
             </Button>
+          </TabsContent>
+
+          {/* ── Plan & licensing ── */}
+          <TabsContent value="plan" className="px-5 py-5 space-y-5">
+            <section className="flex items-center justify-between rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">
+                  {license?.tier === "pro" ? t("plan.current_pro") : t("plan.current_free")}
+                </p>
+                {license?.email && (
+                  <p className="text-xs text-[var(--text-tertiary)]">{license.email}</p>
+                )}
+              </div>
+              <Badge variant={license?.tier === "pro" ? "default" : "secondary"}>
+                {license?.tier === "pro" ? "Pro" : "Free"}
+              </Badge>
+            </section>
+
+            {license?.tier === "pro" ? (
+              <section className="space-y-3">
+                <Button variant="outline" size="sm" onClick={handleDeactivate}>
+                  {t("plan.deactivate")}
+                </Button>
+              </section>
+            ) : (
+              <>
+                <section className="space-y-2">
+                  <p className="text-sm text-[var(--text-secondary)]">{t("plan.upgrade_hint")}</p>
+                  <a href={STRIPE_CHECKOUT_URL} target="_blank" rel="noopener noreferrer">
+                    <Button variant="default" size="sm" className="gap-2">
+                      {t("plan.upgrade")}
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </Button>
+                  </a>
+                </section>
+
+                <Separator />
+
+                <section className="space-y-3">
+                  <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
+                    {t("plan.key_label")}
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={licenseKey}
+                      onChange={(e) => setLicenseKey(e.target.value)}
+                      placeholder={t("plan.key_placeholder")}
+                      className="flex-1 font-mono text-xs"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      loading={activating}
+                      disabled={!licenseKey.trim()}
+                      onClick={handleActivate}
+                    >
+                      {t("plan.activate")}
+                    </Button>
+                  </div>
+                </section>
+              </>
+            )}
           </TabsContent>
 
           {/* ── Privacy ── */}
