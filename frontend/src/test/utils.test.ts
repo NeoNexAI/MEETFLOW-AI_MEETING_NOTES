@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { formatDuration, truncate, formatBytes } from "@/lib/utils";
+import {
+  formatDuration,
+  truncate,
+  formatBytes,
+  formatRelativeDate,
+} from "@/lib/utils";
 
 describe("formatDuration", () => {
   it("formats seconds under a minute", () => {
