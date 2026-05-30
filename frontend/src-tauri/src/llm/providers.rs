@@ -75,3 +75,57 @@ impl Default for LlmConfig {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cloud_providers_are_gated_local_ones_are_free() {
+        for p in [
+            LlmProvider::Claude,
+            LlmProvider::OpenAi,
+            LlmProvider::Groq,
+            LlmProvider::OpenRouter,
+            LlmProvider::Mistral,
+        ] {
+            assert!(p.is_cloud(), "{p:?} should be cloud (Pro-gated)");
+        }
+        assert!(!LlmProvider::Ollama.is_cloud());
+        assert!(!LlmProvider::Custom.is_cloud());
+    }
+
+    #[test]
+    fn custom_base_url_overrides_only_for_custom_provider() {
+        assert_eq!(
+            LlmProvider::Custom.base_url(Some("http://my-host:9000/v1")),
+            "http://my-host:9000/v1"
+        );
+        // Non-custom providers ignore the override.
+        assert_eq!(
+            LlmProvider::Claude.base_url(Some("http://ignored")),
+            "https://api.anthropic.com"
+        );
+        // Custom falls back to a sane default when none is given.
+        assert_eq!(
+            LlmProvider::Custom.base_url(None),
+            "http://localhost:1234/v1"
+        );
+    }
+
+    #[test]
+    fn default_config_is_local_ollama() {
+        let cfg = LlmConfig::default();
+        assert_eq!(cfg.provider, LlmProvider::Ollama);
+        assert!(!cfg.provider.is_cloud());
+        assert!(cfg.api_key.is_none());
+    }
+
+    #[test]
+    fn provider_serializes_as_snake_case() {
+        let json = serde_json::to_string(&LlmProvider::OpenAi).unwrap();
+        assert_eq!(json, "\"open_ai\"");
+        let back: LlmProvider = serde_json::from_str("\"open_router\"").unwrap();
+        assert_eq!(back, LlmProvider::OpenRouter);
+    }
+}

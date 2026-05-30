@@ -46,4 +46,31 @@ describe("formatBytes", () => {
   it("formats megabytes", () => {
     expect(formatBytes(1024 * 1024 * 77)).toBe("77.0 MB");
   });
+
+  it("formats gigabytes", () => {
+    expect(formatBytes(1024 * 1024 * 1024)).toBe("1.00 GB");
+  });
+});
+
+describe("formatRelativeDate", () => {
+  it("returns 'Just now' for very recent timestamps", () => {
+    expect(formatRelativeDate(Date.now() - 5_000)).toBe("Just now");
+  });
+
+  it("returns minutes for sub-hour ranges", () => {
+    expect(formatRelativeDate(Date.now() - 5 * 60_000)).toBe("5m ago");
+  });
+
+  it("returns hours for sub-day ranges", () => {
+    expect(formatRelativeDate(Date.now() - 3 * 3_600_000)).toBe("3h ago");
+  });
+
+  it("returns days for sub-week ranges", () => {
+    expect(formatRelativeDate(Date.now() - 2 * 86_400_000)).toBe("2d ago");
+  });
+
+  it("falls back to a locale date for older timestamps", () => {
+    const old = formatRelativeDate(Date.now() - 30 * 86_400_000);
+    expect(old).not.toMatch(/ago|Just now/);
+  });
 });

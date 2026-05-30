@@ -101,10 +101,13 @@ seguridad/privacidad, completar Settings, y sentar la base freemium.
 - ⬜ Export PDF (planned)
 
 ### Fase 5 — Testing & calidad 🚧
-- 🚧 Tests unitarios Rust: ✅ parser de summary + `truncate_transcript` (7 tests).
-  Pendiente: helpers DB, verificación de licencia.
-- ⬜ Playwright smoke (render de rutas con dev server)
-- ⬜ Cobertura objetivo >80% en módulos core
+- ✅ Tests unitarios Rust: **27 tests** — summary parser/truncate, secrets
+  (AES-GCM), licensing (Ed25519), LLM providers (is_cloud/base_url/default/serde),
+  catálogo Whisper (ids únicos, modelo free, checksums 64-hex, URLs oficiales).
+- ✅ Tests frontend: **15 tests** (utils: duración, bytes, truncate, fechas relativas).
+- ⬜ Playwright e2e: diferido — frágil contra Tauri en el CI actual
+  (requiere tauri-driver/WebKitGTK). Se prioriza cobertura unitaria fiable.
+- ⬜ Cobertura formal >80% (medir con tarpaulin/coverage en CI)
 
 > Bugs de correctitud detectados y corregidos al escribir los tests:
 > - `parse_summary_response` paniqueaba con un fence ```` ```json ```` sin cierre
