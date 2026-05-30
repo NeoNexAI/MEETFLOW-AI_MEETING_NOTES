@@ -74,9 +74,25 @@ pub async fn start_recording(
         )?;
     }
 
+    // Preferred input device (set in Settings → Audio); None = OS default.
+    let device_name: Option<String> = {
+        let conn =
+            db.0.lock()
+                .map_err(|_| MeetflowError::Db("Lock poisoned".into()))?;
+        conn.query_row(
+            "SELECT value FROM settings WHERE key = 'audio_input_device'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .ok()
+        .filter(|s| !s.is_empty())
+    };
+
     let (transcript_tx, _transcript_rx) = watch::channel(String::new());
 
-    let handle = RecordingPipeline::start(meeting_id.clone(), audio_path, transcript_tx).await?;
+    let handle =
+        RecordingPipeline::start(meeting_id.clone(), audio_path, transcript_tx, device_name)
+            .await?;
 
     let mut guard = active
         .0

@@ -283,13 +283,16 @@
       "microphone": "Micrófono",
       "system_audio": "Audio del sistema",
       "test": "Probar audio",
-      "gain": "Ganancia de entrada"
+      "gain": "Ganancia de entrada",
+      "default_device": "Predeterminado del sistema",
+      "hint": "Se aplica a tu próxima grabación."
     },
     "transcription": {
       "model": "Modelo activo",
       "language": "Idioma",
       "auto_detect": "Detección automática",
-      "download_models": "Gestionar modelos"
+      "download_models": "Gestionar modelos",
+      "downloaded": "Descargado"
     },
     "ai": {
       "provider": "Proveedor de resúmenes",

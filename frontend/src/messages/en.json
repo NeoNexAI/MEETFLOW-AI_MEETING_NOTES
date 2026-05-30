@@ -283,13 +283,16 @@
       "microphone": "Microphone",
       "system_audio": "System audio",
       "test": "Test audio",
-      "gain": "Input gain"
+      "gain": "Input gain",
+      "default_device": "System default",
+      "hint": "Applies to your next recording."
     },
     "transcription": {
       "model": "Active model",
       "language": "Language",
       "auto_detect": "Auto-detect",
-      "download_models": "Manage models"
+      "download_models": "Manage models",
+      "downloaded": "Downloaded"
     },
     "ai": {
       "provider": "Summary provider",
