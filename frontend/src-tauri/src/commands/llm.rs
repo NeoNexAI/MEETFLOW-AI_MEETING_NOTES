@@ -22,6 +22,14 @@ pub async fn generate_meeting_summary(
     config: LlmConfig,
     db: State<'_, DbPool>,
 ) -> Result<GenerateSummaryResponse, MeetflowError> {
+    // Cloud LLM providers are a Pro-tier feature; local (Ollama/custom) is free.
+    if config.provider.is_cloud() && !crate::commands::license::current_entitlements(&db).cloud_llm
+    {
+        return Err(MeetflowError::InvalidInput(
+            "Cloud AI providers require MeetFlow Pro. Use a local Ollama model, or upgrade in Settings → Plan.".into(),
+        ));
+    }
+
     let client = LlmClient::new(config.clone());
     let response = generate_summary(&client, &req).await?;
 

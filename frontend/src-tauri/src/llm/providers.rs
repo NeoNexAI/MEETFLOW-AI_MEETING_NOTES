@@ -40,6 +40,15 @@ impl LlmProvider {
                 | Self::Custom
         )
     }
+
+    /// Whether this is a hosted cloud provider (gated behind the Pro tier).
+    /// Local/self-hosted options (Ollama, custom endpoints) are always free.
+    pub fn is_cloud(&self) -> bool {
+        matches!(
+            self,
+            Self::Claude | Self::OpenAi | Self::Groq | Self::OpenRouter | Self::Mistral
+        )
+    }
 }
 
 /// LLM configuration stored in app settings.

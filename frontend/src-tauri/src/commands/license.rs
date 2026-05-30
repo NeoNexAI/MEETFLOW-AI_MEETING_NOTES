@@ -30,6 +30,17 @@ impl LicenseStatus {
     }
 }
 
+/// Current entitlements for the installed license (Free if none/invalid).
+/// Used by other commands to enforce Pro-only features in the backend.
+pub fn current_entitlements(db: &DbPool) -> Entitlements {
+    let tier = read_license_key(db)
+        .ok()
+        .flatten()
+        .and_then(|key| verify_license_key(&key).ok())
+        .map_or(Tier::Free, |lic| lic.tier);
+    Entitlements::for_tier(tier)
+}
+
 fn read_license_key(db: &DbPool) -> Result<Option<String>, MeetflowError> {
     let conn =
         db.0.lock()

@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useLicense } from "@/hooks/useLicense";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -112,6 +113,7 @@ type DownloadState = "idle" | "downloading" | "done" | "error";
 function StepModel({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   const t = useTranslations("onboarding.model");
   const tc = useTranslations("common.button");
+  const { entitlements } = useLicense();
   const [models, setModels] = useState<ModelStatus[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -233,6 +235,10 @@ function StepModel({ onNext, onBack }: { onNext: () => void; onBack: () => void 
                   <CheckCircle2 className="w-5 h-5 text-[var(--success)]" />
                 ) : isDownloading ? (
                   <Loader2 className="w-5 h-5 text-[var(--accent)] animate-spin" />
+                ) : model.requiresPro && !entitlements.largeModels ? (
+                  <Badge variant="default" className="text-[10px]">
+                    Pro
+                  </Badge>
                 ) : (
                   <Button
                     size="sm"

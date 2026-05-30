@@ -103,6 +103,7 @@ export interface ModelCatalogEntry {
   badge: string | null;
   hfUrl: string;
   sha256: string;
+  requiresPro: boolean;
 }
 
 export interface ModelStatus extends ModelCatalogEntry {
