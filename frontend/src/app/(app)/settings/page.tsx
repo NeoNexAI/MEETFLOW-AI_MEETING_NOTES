@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { listen } from "@tauri-apps/api/event";
+import { useLicense } from "@/hooks/useLicense";
 import {
   FolderOpen,
   Trash2,
@@ -59,7 +60,16 @@ export default function SettingsPage() {
   const t = useTranslations("settings");
   const tc = useTranslations("common.button");
   const locale = useLocale();
+  const { entitlements } = useLicense();
   const [tab, setTab] = useState("general");
+
+  const CLOUD_PROVIDER_VALUES: LlmProvider[] = [
+    "claude",
+    "open_ai",
+    "groq",
+    "open_router",
+    "mistral",
+  ];
 
   // ── Audio + Transcription state ──
   const [audioDevices, setAudioDevices] = useState<AudioDeviceInfo[]>([]);
@@ -298,6 +308,8 @@ export default function SettingsPage() {
                     </div>
                     {m.downloaded ? (
                       <Badge variant="secondary">{t("transcription.downloaded")}</Badge>
+                    ) : m.requiresPro && !entitlements.largeModels ? (
+                      <Badge variant="default">Pro</Badge>
                     ) : (
                       <Button
                         size="sm"
@@ -355,9 +367,16 @@ export default function SettingsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {CLOUD_PROVIDERS.map((p) => (
-                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                  ))}
+                  {CLOUD_PROVIDERS.map((p) => {
+                    const locked =
+                      CLOUD_PROVIDER_VALUES.includes(p.value) && !entitlements.cloudLlm;
+                    return (
+                      <SelectItem key={p.value} value={p.value} disabled={locked}>
+                        {p.label}
+                        {locked ? " · Pro" : ""}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </section>

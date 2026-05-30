@@ -92,8 +92,11 @@ seguridad/privacidad, completar Settings, y sentar la base freemium.
 - ✅ Comandos `get/activate/deactivate_license` + wrappers TS
 - ✅ UI Settings → Plan: estado, activación, enlace de checkout (Stripe Payment Link)
 - ✅ Herramienta operador `examples/gen_license.rs` + runbook `docs/playbooks/release.md`
-- ⬜ Gating efectivo en la UI sobre `entitlements` (cloud_llm, large_models…) — siguiente paso
+- ✅ Gating de entitlements con **enforcement en backend** (no solo UI):
+  resumen con provider cloud y descarga de modelos `requires_pro` rechazados en
+  tier Free; UI muestra candados "Pro" en Settings (IA, Transcription) y onboarding.
 - ⬜ Webhook Stripe → emisión/email de clave (backend mínimo del operador)
+- ⬜ Gating de `advanced_export` / `integrations` (cuando lleguen PDF/JSON e integraciones)
 
 ### Fase 5 — Testing & calidad 🚧
 - 🚧 Tests unitarios Rust: ✅ parser de summary + `truncate_transcript` (7 tests).

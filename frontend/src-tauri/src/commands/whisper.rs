@@ -104,11 +104,19 @@ pub fn get_downloaded_models(app: AppHandle) -> Result<Vec<String>, MeetflowErro
 pub async fn download_whisper_model(
     app: AppHandle,
     model_id: String,
+    db: State<'_, DbPool>,
 ) -> Result<String, MeetflowError> {
     let entry = MODEL_CATALOG
         .iter()
         .find(|e| e.id == model_id)
         .ok_or_else(|| MeetflowError::NotFound(format!("Model '{model_id}' not in catalog")))?;
+
+    // Large/high-accuracy models are a Pro-tier feature.
+    if entry.requires_pro && !crate::commands::license::current_entitlements(&db).large_models {
+        return Err(MeetflowError::InvalidInput(
+            "This model requires MeetFlow Pro. Upgrade in Settings → Plan.".into(),
+        ));
+    }
 
     let client = Arc::new(
         reqwest::Client::builder()
