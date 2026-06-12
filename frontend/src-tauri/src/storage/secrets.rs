@@ -11,12 +11,14 @@
 //! - Accidental sharing / leaking of the `meetflow.db` file (e.g. attaching it
 //!   to a bug report, or having it picked up by a cloud-sync / backup folder).
 //!
-//! What this does **NOT** protect against:
-//! - An attacker with full read access to the local filesystem. The AES key is
-//!   stored at `app_data_dir/secret.key`, right next to the database, so anyone
-//!   who can read the DB can also read the key. Proper protection against a
-//!   local attacker requires an OS keychain / DPAPI-backed key store, which is
-//!   a planned future improvement.
+//! Key-at-rest protection:
+//! - On **Windows** the AES key file is wrapped with DPAPI (`CryptProtectData`,
+//!   current-user scope), so it can only be unwrapped by the same Windows user
+//!   account — reading the raw file from another account or an offline disk does
+//!   not yield the key.
+//! - On other platforms the key file is written `0o600` (owner-only). A local
+//!   attacker running as the same user can still read it; full protection there
+//!   would need an OS keychain (a possible future improvement).
 //!
 //! Crypto: AES-256-GCM with a random 12-byte nonce per value. The on-disk token
 //! format is `"v1:" || base64(nonce || ciphertext)`. The `v1:` prefix lets
@@ -41,27 +43,109 @@ const VERSION_PREFIX: &str = "v1:";
 /// AES-256-GCM nonce length in bytes (96 bits, the standard GCM nonce size).
 const NONCE_LEN: usize = 12;
 
+// ─── Platform key-at-rest wrapping (DPAPI on Windows, passthrough elsewhere) ──
+
+/// Wrap raw key bytes for on-disk storage. On Windows this is DPAPI-protected
+/// (current-user scope); elsewhere it is returned unchanged (the file is
+/// `0o600` and protection relies on filesystem permissions).
+#[cfg(windows)]
+fn platform_wrap_key(raw: &[u8]) -> Result<Vec<u8>, MeetflowError> {
+    dpapi::protect(raw)
+}
+
+/// Unwrap key bytes read from disk. On Windows, reverses DPAPI; if the data has
+/// no DPAPI envelope (e.g. a key written before this change) it is returned
+/// as-is so existing installs keep working.
+#[cfg(windows)]
+fn platform_unwrap_key(stored: &[u8]) -> Result<Vec<u8>, MeetflowError> {
+    match dpapi::unprotect(stored) {
+        Ok(raw) => Ok(raw),
+        Err(_) if stored.len() == 32 => {
+            tracing::warn!("secret key is legacy (un-DPAPI'd) — will re-wrap on next rotation");
+            Ok(stored.to_vec())
+        }
+        Err(e) => Err(e),
+    }
+}
+
+#[cfg(not(windows))]
+fn platform_wrap_key(raw: &[u8]) -> Result<Vec<u8>, MeetflowError> {
+    Ok(raw.to_vec())
+}
+
+#[cfg(not(windows))]
+fn platform_unwrap_key(stored: &[u8]) -> Result<Vec<u8>, MeetflowError> {
+    Ok(stored.to_vec())
+}
+
+/// Minimal DPAPI (`CryptProtectData`/`CryptUnprotectData`) wrapper, user scope.
+#[cfg(windows)]
+mod dpapi {
+    use crate::error::MeetflowError;
+    use windows::Win32::Foundation::{LocalFree, HLOCAL};
+    use windows::Win32::Security::Cryptography::{
+        CryptProtectData, CryptUnprotectData, CRYPT_INTEGER_BLOB,
+    };
+
+    fn run(
+        input: &[u8],
+        op: &str,
+        f: impl FnOnce(*const CRYPT_INTEGER_BLOB, *mut CRYPT_INTEGER_BLOB) -> windows::core::Result<()>,
+    ) -> Result<Vec<u8>, MeetflowError> {
+        let mut in_blob = CRYPT_INTEGER_BLOB {
+            cbData: input.len() as u32,
+            pbData: input.as_ptr() as *mut u8,
+        };
+        let mut out_blob = CRYPT_INTEGER_BLOB::default();
+        // SAFETY: in_blob points at `input` for the duration of the call; out_blob
+        // is owned by the OS and freed via LocalFree below.
+        unsafe {
+            f(&mut in_blob, &mut out_blob)
+                .map_err(|e| MeetflowError::Storage(format!("DPAPI {op} failed: {e}")))?;
+            let slice = std::slice::from_raw_parts(out_blob.pbData, out_blob.cbData as usize);
+            let out = slice.to_vec();
+            let _ = LocalFree(HLOCAL(out_blob.pbData as *mut _));
+            Ok(out)
+        }
+    }
+
+    pub fn protect(data: &[u8]) -> Result<Vec<u8>, MeetflowError> {
+        run(data, "protect", |i, o| unsafe {
+            CryptProtectData(i, None, None, None, None, 0, o)
+        })
+    }
+
+    pub fn unprotect(data: &[u8]) -> Result<Vec<u8>, MeetflowError> {
+        run(data, "unprotect", |i, o| unsafe {
+            CryptUnprotectData(i, None, None, None, None, 0, o)
+        })
+    }
+}
+
 /// Load the persisted 256-bit AES key, generating and persisting one on first use.
 ///
-/// On unix the key file is created with `0o600` permissions so only the owner
-/// can read it.
+/// On Windows the key bytes are wrapped with DPAPI (`CryptProtectData`, current-
+/// user scope) before being written, so the on-disk file is only usable by the
+/// same Windows user account — not merely by file permissions. On unix the file
+/// is written with `0o600` permissions.
 fn load_or_create_key(app: &AppHandle) -> Result<[u8; 32], MeetflowError> {
     let key_path = storage::app_data_dir(app)?.join(KEY_FILE);
 
     if key_path.exists() {
-        let bytes = std::fs::read(&key_path)?;
-        if bytes.len() != 32 {
+        let stored = std::fs::read(&key_path)?;
+        let raw = platform_unwrap_key(&stored)?;
+        if raw.len() != 32 {
             return Err(MeetflowError::Storage(format!(
                 "secret key file is corrupt: expected 32 bytes, found {}",
-                bytes.len()
+                raw.len()
             )));
         }
         let mut key = [0u8; 32];
-        key.copy_from_slice(&bytes);
+        key.copy_from_slice(&raw);
         return Ok(key);
     }
 
-    // First use: generate a fresh random key and persist it.
+    // First use: generate a fresh random key and persist it (DPAPI-wrapped on Windows).
     let key = Aes256Gcm::generate_key(&mut OsRng);
     let mut bytes = [0u8; 32];
     bytes.copy_from_slice(key.as_slice());
@@ -69,7 +153,7 @@ fn load_or_create_key(app: &AppHandle) -> Result<[u8; 32], MeetflowError> {
     if let Some(parent) = key_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    std::fs::write(&key_path, bytes)?;
+    std::fs::write(&key_path, platform_wrap_key(&bytes)?)?;
 
     #[cfg(unix)]
     {

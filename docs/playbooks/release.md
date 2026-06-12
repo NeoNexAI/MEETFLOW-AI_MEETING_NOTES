@@ -8,6 +8,11 @@ Operator runbook for cutting a release and operating the freemium licensing.
 
 - [ ] `cargo fmt --all -- --check`, `cargo clippy --all-features -- -D warnings`, `cargo test` green.
 - [ ] `pnpm type-check`, `pnpm lint`, `pnpm test` green; i18n EN/ES parity.
+- [ ] **CSP smoke test (first build):** after `pnpm tauri build`, launch the
+      installed app and confirm it loads with no Content-Security-Policy errors
+      in the webview console. The webview enforces a strict CSP (`script-src
+      'self'`); Tauri auto-hashes Next's inline hydration scripts, but verify
+      once on the real installer that hydration and navigation work.
 - [ ] **Pin Whisper SHA256 checksums** (see §2).
 - [ ] Replace the **bootstrap license keypair** with a production one (see §3).
 - [ ] Set the real **Stripe Payment Link** (see §4).
