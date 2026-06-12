@@ -2,12 +2,10 @@
 
 use tauri::State;
 
+use crate::commands::settings::keys::LICENSE_KEY as LICENSE_SETTING_KEY;
 use crate::db::DbPool;
 use crate::error::MeetflowError;
 use crate::licensing::{verify_license_key, Entitlements, Tier};
-
-/// Setting key under which the activated license token is stored.
-const LICENSE_SETTING_KEY: &str = "license_key";
 
 /// Current license state surfaced to the UI.
 #[derive(serde::Serialize)]
@@ -115,4 +113,54 @@ pub fn deactivate_license(db: State<'_, DbPool>) -> Result<(), MeetflowError> {
         rusqlite::params![LICENSE_SETTING_KEY],
     )?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Mutex;
+
+    /// In-memory DB with the schema applied, for command-level integration tests.
+    fn test_db() -> DbPool {
+        let conn = rusqlite::Connection::open_in_memory().expect("open in-memory db");
+        crate::db::schema::run_migrations(&conn).expect("migrations");
+        DbPool(Mutex::new(conn))
+    }
+
+    fn put_license(db: &DbPool, value: &str) {
+        let conn = db.0.lock().unwrap();
+        conn.execute(
+            "INSERT INTO settings (key, value, updated_at) VALUES (?1, ?2, 0)
+             ON CONFLICT(key) DO UPDATE SET value = ?2",
+            rusqlite::params![LICENSE_SETTING_KEY, value],
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn no_license_is_free_tier() {
+        let db = test_db();
+        let ent = current_entitlements(&db);
+        assert!(!ent.cloud_llm);
+        assert!(!ent.large_models);
+    }
+
+    #[test]
+    fn invalid_stored_license_degrades_to_free() {
+        let db = test_db();
+        put_license(&db, "garbage.not-a-real-token");
+        let ent = current_entitlements(&db);
+        assert!(!ent.cloud_llm, "an unverifiable key must not unlock Pro");
+    }
+
+    #[test]
+    fn read_license_key_round_trips_through_db() {
+        let db = test_db();
+        assert!(read_license_key(&db).unwrap().is_none());
+        put_license(&db, "some-token");
+        assert_eq!(
+            read_license_key(&db).unwrap().as_deref(),
+            Some("some-token")
+        );
+    }
 }

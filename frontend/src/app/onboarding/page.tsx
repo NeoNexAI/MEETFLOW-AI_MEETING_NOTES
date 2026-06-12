@@ -36,6 +36,7 @@ import {
   type LlmConfig,
   type LlmProvider,
 } from "@/lib/tauri";
+import { SETTINGS_KEYS } from "@/lib/settings-keys";
 import { listen } from "@tauri-apps/api/event";
 
 const TOTAL_STEPS = 3;
@@ -338,7 +339,7 @@ function StepAiProvider({ onNext, onBack }: { onNext: () => void; onBack: () => 
 
   const handleFinish = async () => {
     const config = buildConfig();
-    await setSetting("llm_config", JSON.stringify(config));
+    await setSetting(SETTINGS_KEYS.llmConfig, JSON.stringify(config));
     onNext();
   };
 

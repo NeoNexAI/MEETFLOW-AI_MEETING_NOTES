@@ -4,9 +4,23 @@ use crate::db::DbPool;
 use crate::error::MeetflowError;
 use crate::storage;
 
+/// Canonical keys for the `settings` table. Centralized so the Rust commands
+/// and the TS wrappers can't drift apart on a typo'd string. The matching
+/// TypeScript constants live in `frontend/src/lib/settings-keys.ts`.
+pub mod keys {
+    /// JSON `LlmConfig` (embeds the cloud API key — see `SECRET_KEYS`).
+    pub const LLM_CONFIG: &str = "llm_config";
+    /// Preferred input device name for recording.
+    pub const AUDIO_INPUT_DEVICE: &str = "audio_input_device";
+    /// Active Whisper model id for transcription.
+    pub const WHISPER_MODEL: &str = "whisper_model";
+    /// Activated Pro license token.
+    pub const LICENSE_KEY: &str = "license_key";
+}
+
 /// Setting keys whose value is encrypted at rest (they embed secrets such as
 /// the cloud LLM API key). See `storage::secrets` for the threat model.
-const SECRET_KEYS: &[&str] = &["llm_config"];
+const SECRET_KEYS: &[&str] = &[keys::LLM_CONFIG];
 
 /// Get a settings value by key. Values for [`SECRET_KEYS`] are transparently
 /// decrypted; pre-encryption (legacy plaintext) values are returned as-is and

@@ -80,8 +80,8 @@ pub async fn start_recording(
             db.0.lock()
                 .map_err(|_| MeetflowError::Db("Lock poisoned".into()))?;
         conn.query_row(
-            "SELECT value FROM settings WHERE key = 'audio_input_device'",
-            [],
+            "SELECT value FROM settings WHERE key = ?1",
+            [crate::commands::settings::keys::AUDIO_INPUT_DEVICE],
             |row| row.get::<_, String>(0),
         )
         .ok()
