@@ -40,6 +40,13 @@ jobs:
       - name: Unit tests + coverage gate
         run: pnpm test:coverage
 
+      # Catch static-export regressions (e.g. dynamic routes missing
+      # generateStaticParams) that only surface in the Tauri production build.
+      - name: Production export build
+        run: pnpm build
+        env:
+          NODE_ENV: production
+
   # ─── Rust: check + clippy + tests ────────────────────────────────────────
   rust:
     name: Rust (Tauri backend)
