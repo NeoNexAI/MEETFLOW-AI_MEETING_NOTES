@@ -44,7 +44,7 @@ to anyone unless you explicitly configure a cloud provider.
 | Layer | Technology |
 |---|---|
 | Desktop shell | Tauri v2 (Rust) |
-| Frontend | Next.js 14 + TypeScript 5 + shadcn/ui + Tailwind |
+| Frontend | Next.js 15 + TypeScript 5 + shadcn/ui + Tailwind |
 | Audio capture | cpal + WASAPI loopback |
 | Transcription | whisper-rs (whisper.cpp bindings) |
 | LLM clients | reqwest (Rust) → Ollama / Claude / OpenAI / Groq / OpenRouter |

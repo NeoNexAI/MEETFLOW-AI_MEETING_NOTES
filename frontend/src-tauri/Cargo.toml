@@ -65,6 +65,14 @@ ed25519-dalek = "2"
 # Whisper transcription (wraps whisper.cpp — builds from source, requires CMake + MSVC + LLVM)
 whisper-rs = "0.16"
 
+# Windows-only: DPAPI to protect the at-rest encryption key (CryptProtectData).
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_Security_Cryptography",
+    "Win32_System_Memory",
+] }
+
 [features]
 # Required by Tauri for production builds. DO NOT REMOVE.
 custom-protocol = ["tauri/custom-protocol"]

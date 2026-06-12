@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -37,8 +37,15 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Unit tests
-        run: pnpm test -- --coverage
+      - name: Unit tests + coverage gate
+        run: pnpm test:coverage
+
+      # Catch static-export regressions (e.g. dynamic routes missing
+      # generateStaticParams) that only surface in the Tauri production build.
+      - name: Production export build
+        run: pnpm build
+        env:
+          NODE_ENV: production
 
   # ─── Rust: check + clippy + tests ────────────────────────────────────────
   rust:
@@ -55,12 +62,40 @@ jobs:
         with:
           components: clippy, rustfmt
 
+      # Cache key includes the runner image so a Visual Studio toolchain bump
+      # (e.g. VS 2022 → 2026) invalidates the cache. whisper.cpp's CMake build
+      # pins the generator in CMakeCache.txt; reusing a cache from an older VS
+      # makes CMake hard-error ("generator does not match"). The image label
+      # changes on those bumps, so keying on it forces a clean rebuild.
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: frontend/src-tauri -> target
+          key: ${{ runner.os }}-${{ env.ImageVersion }}
 
       - name: cargo fmt check
         run: cargo fmt --all -- --check
+
+      # Defensive: drop cached whisper.cpp CMake build dirs whose pinned
+      # generator no longer matches the runner's Visual Studio. CMake hard-errors
+      # on a generator mismatch instead of regenerating; here we detect the
+      # current VS generator and only purge caches that disagree. No-op when the
+      # cache is clean or already matches.
+      - name: Clear stale whisper CMake cache
+        shell: pwsh
+        run: |
+          $vs = (Get-CimInstance MSFT_VSInstance -Namespace root/cimv2/vs -ErrorAction SilentlyContinue |
+            Select-Object -First 1).Version
+          $gen = if ($vs -and $vs.StartsWith('18')) { 'Visual Studio 18 2026' }
+                 elseif ($vs -and $vs.StartsWith('17')) { 'Visual Studio 17 2022' } else { $null }
+          if ($gen) {
+            Get-ChildItem -Path target -Recurse -Filter CMakeCache.txt -ErrorAction SilentlyContinue |
+              Where-Object { (Get-Content $_.FullName -Raw) -notmatch [regex]::Escape($gen) } |
+              ForEach-Object {
+                Write-Host "Purging stale CMake cache: $($_.Directory)"
+                Remove-Item -Recurse -Force $_.Directory
+              }
+          }
+        continue-on-error: true
 
       - name: Create dist placeholder (required by tauri::generate_context!)
         run: New-Item -ItemType Directory -Force -Path dist
@@ -74,3 +109,35 @@ jobs:
 
       - name: cargo test
         run: cargo test --all-features
+
+  # ─── Supply-chain: dependency vulnerability audit ────────────────────────
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # JS dependencies (production only).
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: pnpm install
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: pnpm audit (prod)
+        working-directory: frontend
+        run: pnpm audit --prod
+
+      # Rust dependencies.
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+      - name: cargo audit
+        working-directory: frontend/src-tauri
+        run: cargo audit

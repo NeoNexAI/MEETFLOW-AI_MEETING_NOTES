@@ -105,9 +105,15 @@ seguridad/privacidad, completar Settings, y sentar la base freemium.
   (AES-GCM), licensing (Ed25519), LLM providers (is_cloud/base_url/default/serde),
   catálogo Whisper (ids únicos, modelo free, checksums 64-hex, URLs oficiales).
 - ✅ Tests frontend: **15 tests** (utils: duración, bytes, truncate, fechas relativas).
-- ⬜ Playwright e2e: diferido — frágil contra Tauri en el CI actual
-  (requiere tauri-driver/WebKitGTK). Se prioriza cobertura unitaria fiable.
-- ⬜ Cobertura formal >80% (medir con tarpaulin/coverage en CI)
+- ✅ **Gate de cobertura** en CI (vitest thresholds sobre `lib/utils.ts`; se
+  ampliará `include` a medida que crezcan los tests, rumbo al >80% de CLAUDE.md).
+- ✅ **Auditoría de dependencias en CI** (`pnpm audit --prod` + `cargo audit`).
+- ⬜ Playwright e2e: diferido — frágil contra Tauri en el CI actual.
+- ⬜ Ampliar cobertura a comandos Tauri / hooks (objetivo >80%).
+
+### Seguridad — hardening post-auditoría 🚧
+- ✅ **0 vulnerabilidades** en `pnpm audit --prod` (eran 4): next-intl 3→4,
+  postcss override ≥8.5.10, y 5 deps muertas eliminadas (incl. CVE de uuid).
 
 > Bugs de correctitud detectados y corregidos al escribir los tests:
 > - `parse_summary_response` paniqueaba con un fence ```` ```json ```` sin cierre
