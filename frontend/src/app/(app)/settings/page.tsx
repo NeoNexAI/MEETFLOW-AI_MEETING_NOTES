@@ -47,6 +47,7 @@ import {
   type LlmProvider,
   defaultLlmConfig,
 } from "@/lib/tauri";
+import { SETTINGS_KEYS } from "@/lib/settings-keys";
 import { toast } from "sonner";
 
 /**
@@ -91,8 +92,8 @@ export default function SettingsPage() {
     getAudioDevices()
       .then((d) => setAudioDevices(d.filter((x) => x.kind === "input")))
       .catch(() => {});
-    getSetting("audio_input_device").then((v) => setInputDevice(v ?? "")).catch(() => {});
-    getSetting("whisper_model").then((v) => setActiveModel(v ?? "")).catch(() => {});
+    getSetting(SETTINGS_KEYS.audioInputDevice).then((v) => setInputDevice(v ?? "")).catch(() => {});
+    getSetting(SETTINGS_KEYS.whisperModel).then((v) => setActiveModel(v ?? "")).catch(() => {});
     getLicenseStatus().then(setLicense).catch(() => {});
     refreshModels();
   }, []);
@@ -121,12 +122,12 @@ export default function SettingsPage() {
 
   const changeInputDevice = (name: string) => {
     setInputDevice(name);
-    void setSetting("audio_input_device", name).catch(() => {});
+    void setSetting(SETTINGS_KEYS.audioInputDevice, name).catch(() => {});
   };
 
   const changeActiveModel = (id: string) => {
     setActiveModel(id);
-    void setSetting("whisper_model", id).catch(() => {});
+    void setSetting(SETTINGS_KEYS.whisperModel, id).catch(() => {});
   };
 
   const handleDownloadModel = (id: string) => {
@@ -168,7 +169,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     getAppDataDir().then(setDataDir).catch(() => {});
-    getSetting("llm_config")
+    getSetting(SETTINGS_KEYS.llmConfig)
       .then((raw) => {
         if (raw) setLlmConfig(JSON.parse(raw) as LlmConfig);
       })
@@ -185,7 +186,7 @@ export default function SettingsPage() {
 
   const saveConfig = async (updated: LlmConfig) => {
     setLlmConfig(updated);
-    await setSetting("llm_config", JSON.stringify(updated)).catch(() => {});
+    await setSetting(SETTINGS_KEYS.llmConfig, JSON.stringify(updated)).catch(() => {});
   };
 
   const handleTest = async () => {

@@ -208,8 +208,8 @@ pub async fn transcribe_meeting(
             db.0.lock()
                 .map_err(|_| MeetflowError::Db("Lock poisoned".into()))?;
         conn.query_row(
-            "SELECT value FROM settings WHERE key = 'whisper_model'",
-            [],
+            "SELECT value FROM settings WHERE key = ?1",
+            [crate::commands::settings::keys::WHISPER_MODEL],
             |row| row.get::<_, String>(0),
         )
         .ok()

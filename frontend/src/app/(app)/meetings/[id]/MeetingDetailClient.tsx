@@ -44,6 +44,7 @@ import {
   useTranscribeMeeting,
 } from "@/hooks/useMeetings";
 import { useLicense } from "@/hooks/useLicense";
+import { SETTINGS_KEYS } from "@/lib/settings-keys";
 import { listen } from "@tauri-apps/api/event";
 import { useQueryClient } from "@tanstack/react-query";
 import { meetingKeys } from "@/hooks/useMeetings";
@@ -86,7 +87,7 @@ function SummaryTab({ meetingId, title, durationSec }: { meetingId: string; titl
     if (!transcript?.content) return;
     let config: LlmConfig;
     try {
-      const raw = await getSetting("llm_config");
+      const raw = await getSetting(SETTINGS_KEYS.llmConfig);
       config = raw ? (JSON.parse(raw) as LlmConfig) : {
         provider: "ollama" as LlmProvider,
         model: "llama3.2",
