@@ -314,6 +314,28 @@
       "temperature": "Temperatura",
       "test": "Probar conexión"
     },
+    "summary_options": {
+      "meeting_type": "Tipo de reunión",
+      "tone": "Tono del resumen",
+      "custom_instructions": "Instrucciones personalizadas",
+      "custom_placeholder": "p. ej. escribe siempre en español, destaca riesgos, dirígete a mi jefe…",
+      "types": {
+        "general": "General",
+        "one_on_one": "1:1",
+        "standup": "Daily",
+        "sales": "Llamada de ventas",
+        "retro": "Retrospectiva",
+        "interview": "Entrevista",
+        "brainstorm": "Lluvia de ideas",
+        "planning": "Planificación"
+      },
+      "tones": {
+        "professional": "Profesional",
+        "casual": "Cercano",
+        "concise": "Conciso",
+        "detailed": "Detallado"
+      }
+    },
     "privacy": {
       "data_location": "Ubicación de datos",
       "open_folder": "Abrir carpeta",

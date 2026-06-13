@@ -23,6 +23,7 @@ import {
   type LlmProvider,
 } from "@/lib/tauri";
 import { SETTINGS_KEYS } from "@/lib/settings-keys";
+import { SummaryOptionsSection } from "@/components/settings/summary-options";
 
 const CLOUD_PROVIDER_VALUES: LlmProvider[] = [
   "claude",
@@ -176,6 +177,8 @@ export function AiTab() {
         {testState === "failed" && <XCircle className="w-3.5 h-3.5 text-[var(--error)]" />}
         {t("ai.test")}
       </Button>
+
+      <SummaryOptionsSection />
     </>
   );
 }

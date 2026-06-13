@@ -140,11 +140,37 @@ export const defaultLlmConfig = (): LlmConfig => ({
   temperature: 0.3,
 });
 
+// Mirrors src-tauri/src/llm/templates.rs
+export type MeetingType =
+  | "general"
+  | "one_on_one"
+  | "standup"
+  | "sales"
+  | "retro"
+  | "interview"
+  | "brainstorm"
+  | "planning";
+
+export type SummaryTone = "professional" | "casual" | "concise" | "detailed";
+
+export interface SummaryOptions {
+  meetingType: MeetingType;
+  tone: SummaryTone;
+  customInstructions: string;
+}
+
+export const defaultSummaryOptions = (): SummaryOptions => ({
+  meetingType: "general",
+  tone: "professional",
+  customInstructions: "",
+});
+
 export interface GenerateSummaryRequest {
   meetingId: string;
   transcript: string;
   meetingTitle: string;
   durationSec: number | null;
+  options: SummaryOptions;
 }
 
 export interface GenerateSummaryResponse {

@@ -6,8 +6,8 @@ import { CheckSquare, Loader2, Sparkles, Tag, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useGenerateSummary, useSummary, useTranscript } from "@/hooks/useMeetings";
-import { getSetting } from "@/lib/tauri";
-import type { LlmConfig, LlmProvider } from "@/lib/tauri";
+import { defaultSummaryOptions, getSetting } from "@/lib/tauri";
+import type { LlmConfig, LlmProvider, SummaryOptions } from "@/lib/tauri";
 import { SETTINGS_KEYS } from "@/lib/settings-keys";
 
 function ActionItemList({
@@ -74,7 +74,14 @@ export function SummaryTab({
         temperature: 0.3,
       };
     }
-    generateMutation.mutate({ transcript: transcript.content, title, durationSec, config });
+    let options: SummaryOptions;
+    try {
+      const rawOpts = await getSetting(SETTINGS_KEYS.summaryOptions);
+      options = rawOpts ? (JSON.parse(rawOpts) as SummaryOptions) : defaultSummaryOptions();
+    } catch {
+      options = defaultSummaryOptions();
+    }
+    generateMutation.mutate({ transcript: transcript.content, title, durationSec, config, options });
   };
 
   if (isLoading) {
