@@ -7,6 +7,11 @@ use crate::storage;
 /// Canonical keys for the `settings` table. Centralized so the Rust commands
 /// and the TS wrappers can't drift apart on a typo'd string. The matching
 /// TypeScript constants live in `frontend/src/lib/settings-keys.ts`.
+///
+/// `allow(dead_code)`: this module is a shared contract mirror — some keys are
+/// only read on the TS side (e.g. `SUMMARY_OPTIONS`), so not every constant has
+/// a Rust consumer.
+#[allow(dead_code)]
 pub mod keys {
     /// JSON `LlmConfig` (embeds the cloud API key — see `SECRET_KEYS`).
     pub const LLM_CONFIG: &str = "llm_config";
