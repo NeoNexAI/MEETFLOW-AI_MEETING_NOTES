@@ -4,6 +4,7 @@ use crate::db::models::{ActionItem, Summary};
 use crate::error::MeetflowError;
 
 use super::client::LlmClient;
+use super::templates::{build_system_prompt, SummaryOptions};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -12,6 +13,10 @@ pub struct GenerateSummaryRequest {
     pub transcript: String,
     pub meeting_title: String,
     pub duration_sec: Option<i64>,
+    /// Personalization (meeting type, tone, custom instructions). Optional so
+    /// older callers / payloads default to General + Professional.
+    #[serde(default)]
+    pub options: SummaryOptions,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -30,7 +35,7 @@ pub async fn generate_summary(
     client: &LlmClient,
     req: &GenerateSummaryRequest,
 ) -> Result<GenerateSummaryResponse, MeetflowError> {
-    let system = SUMMARY_SYSTEM_PROMPT;
+    let system = build_system_prompt(&req.options);
 
     let user = format!(
         "Meeting: {title}\nDuration: {duration}\n\nTranscript:\n{transcript}",
@@ -42,7 +47,7 @@ pub async fn generate_summary(
         transcript = truncate_transcript(&req.transcript, 12_000),
     );
 
-    let raw = client.complete(system, &user).await?;
+    let raw = client.complete(&system, &user).await?;
 
     parse_summary_response(&raw)
         .map_err(|e| MeetflowError::Llm(format!("Failed to parse summary JSON: {e}")))
@@ -76,23 +81,6 @@ fn parse_summary_response(raw: &str) -> Result<GenerateSummaryResponse, serde_js
 
     serde_json::from_str(json_str)
 }
-
-const SUMMARY_SYSTEM_PROMPT: &str = r#"You are a meeting intelligence assistant. Analyze meeting transcripts and return a structured JSON summary.
-
-Return ONLY valid JSON with this exact structure:
-{
-  "executiveSummary": "2-4 sentence summary of what was discussed and decided",
-  "actionItems": [
-    {"text": "action description", "assignee": "person name or null", "due": "YYYY-MM-DD or null", "done": false}
-  ],
-  "topics": ["topic 1", "topic 2"],
-  "sentiment": "positive" | "neutral" | "negative",
-  "score": 0-100
-}
-
-Score rubric: 100 = short, focused, clear decisions + action items. Deduct for: no action items (-20), vague outcomes (-15), very long without resolution (-10).
-Extract action items only when explicitly agreed in the meeting.
-Keep executiveSummary concise and factual."#;
 
 /// Convert a `GenerateSummaryResponse` to the DB `Summary` model.
 pub fn to_db_summary(
