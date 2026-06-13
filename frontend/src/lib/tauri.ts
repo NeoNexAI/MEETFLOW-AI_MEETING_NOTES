@@ -241,6 +241,19 @@ export const exportMeetingMarkdown = (meetingId: string): Promise<string> =>
 export const exportMeetingJson = (meetingId: string): Promise<string> =>
   invoke("export_meeting_json", { meetingId });
 
+// Mirrors src-tauri/src/db/search.rs SearchHit
+export interface SearchHit {
+  meetingId: string;
+  title: string;
+  startedAt: number;
+  /** Highlighted snippet ([…] around matches) from the best-matching field. */
+  snippet: string;
+}
+
+/** Full-text search across titles, transcripts, summaries and notes. */
+export const searchMeetings = (query: string): Promise<SearchHit[]> =>
+  invoke("search_meetings", { query });
+
 // ─── Settings commands ───────────────────────────────────────────────────────
 
 export const getSetting = (key: string): Promise<string | null> =>

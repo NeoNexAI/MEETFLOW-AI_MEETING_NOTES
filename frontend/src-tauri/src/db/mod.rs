@@ -1,5 +1,6 @@
 pub mod models;
 pub mod schema;
+pub mod search;
 
 use std::{path::Path, sync::Mutex};
 

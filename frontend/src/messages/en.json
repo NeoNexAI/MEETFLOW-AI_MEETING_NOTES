@@ -217,7 +217,8 @@
       "cta": "Start recording"
     },
     "search": {
-      "placeholder": "Search meetings, transcripts, notes…"
+      "placeholder": "Search meetings, transcripts, notes…",
+      "no_results": "No meetings match your search."
     },
     "card": {
       "duration": "{duration}",

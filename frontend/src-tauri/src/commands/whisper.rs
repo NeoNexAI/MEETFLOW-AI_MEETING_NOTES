@@ -262,6 +262,9 @@ pub async fn transcribe_meeting(
             "UPDATE meetings SET language = ?1 WHERE id = ?2",
             rusqlite::params![result.language, meeting_id],
         )?;
+
+        // Keep the full-text index in sync with the new transcript.
+        crate::db::search::reindex_meeting(&conn, &meeting_id)?;
     }
 
     // ── 6. Notify frontend ────────────────────────────────────────────────────
