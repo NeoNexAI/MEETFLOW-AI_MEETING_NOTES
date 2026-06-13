@@ -16,6 +16,7 @@ import {
   generateMeetingSummary,
   transcribeMeeting,
   type LlmConfig,
+  type SummaryOptions,
 } from "@/lib/tauri";
 
 // ─── Query keys ──────────────────────────────────────────────────────────────
@@ -120,14 +121,16 @@ export function useGenerateSummary(meetingId: string) {
       title,
       durationSec,
       config,
+      options,
     }: {
       transcript: string;
       title: string;
       durationSec: number | null;
       config: LlmConfig;
+      options: SummaryOptions;
     }) =>
       generateMeetingSummary(
-        { meetingId, transcript, meetingTitle: title, durationSec },
+        { meetingId, transcript, meetingTitle: title, durationSec, options },
         config
       ),
     onSuccess: () => {

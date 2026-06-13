@@ -8,4 +8,5 @@ export const SETTINGS_KEYS = {
   audioInputDevice: "audio_input_device",
   whisperModel: "whisper_model",
   licenseKey: "license_key",
+  summaryOptions: "summary_options",
 } as const;

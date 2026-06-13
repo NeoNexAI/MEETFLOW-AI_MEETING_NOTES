@@ -16,6 +16,8 @@ pub mod keys {
     pub const WHISPER_MODEL: &str = "whisper_model";
     /// Activated Pro license token.
     pub const LICENSE_KEY: &str = "license_key";
+    /// JSON `SummaryOptions` (meeting type, tone, custom instructions).
+    pub const SUMMARY_OPTIONS: &str = "summary_options";
 }
 
 /// Setting keys whose value is encrypted at rest (they embed secrets such as
