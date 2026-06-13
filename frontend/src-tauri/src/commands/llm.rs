@@ -76,6 +76,9 @@ pub async fn generate_meeting_summary(
                 summary.created_at,
             ],
         )?;
+
+        // Index the new summary text for full-text search.
+        crate::db::search::reindex_meeting(&conn, &summary.meeting_id)?;
     }
 
     Ok(response)

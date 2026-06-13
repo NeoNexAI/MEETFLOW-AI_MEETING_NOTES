@@ -92,6 +92,7 @@ pub fn update_meeting_title(
         "UPDATE meetings SET title = ?1 WHERE id = ?2",
         params![title, id],
     )?;
+    crate::db::search::reindex_meeting(&conn, &id)?;
     Ok(())
 }
 
@@ -102,6 +103,8 @@ pub fn delete_meeting(db: State<'_, DbPool>, id: String) -> Result<(), MeetflowE
         db.0.lock()
             .map_err(|_| MeetflowError::Db("Lock poisoned".into()))?;
     conn.execute("DELETE FROM meetings WHERE id = ?1", params![id])?;
+    // FTS5 virtual tables aren't covered by FK cascade — clear the index row.
+    crate::db::search::remove_from_index(&conn, &id)?;
     Ok(())
 }
 
@@ -223,7 +226,20 @@ pub fn save_note(
          ON CONFLICT(meeting_id) DO UPDATE SET content = ?3, updated_at = ?4",
         params![id, meeting_id, content, now],
     )?;
+    crate::db::search::reindex_meeting(&conn, &meeting_id)?;
     Ok(())
+}
+
+/// Full-text search across meeting titles, transcripts, summaries and notes.
+#[tauri::command]
+pub fn search_meetings(
+    db: State<'_, DbPool>,
+    query: String,
+) -> Result<Vec<crate::db::search::SearchHit>, MeetflowError> {
+    let conn =
+        db.0.lock()
+            .map_err(|_| MeetflowError::Db("Lock poisoned".into()))?;
+    crate::db::search::search(&conn, &query, 50)
 }
 
 /// Export a meeting as Markdown text.

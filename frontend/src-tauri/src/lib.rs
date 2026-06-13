@@ -69,6 +69,7 @@ pub fn run() {
             commands::meetings::save_note,
             commands::meetings::export_meeting_markdown,
             commands::meetings::export_meeting_json,
+            commands::meetings::search_meetings,
             // Settings
             commands::settings::get_setting,
             commands::settings::set_setting,

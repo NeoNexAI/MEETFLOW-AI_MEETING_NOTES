@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, formatDuration, formatRelativeDate } from "@/lib/utils";
 import { useMeetingList } from "@/hooks/useMeetings";
-import type { MeetingCard } from "@/lib/tauri";
+import { searchMeetings, type MeetingCard, type SearchHit } from "@/lib/tauri";
 
 // ─── Meeting card item ────────────────────────────────────────────────────────
 
@@ -65,6 +65,48 @@ function MeetingItem({ card, onClick }: { card: MeetingCard; onClick: () => void
   );
 }
 
+// ─── Search result item (FTS hit with snippet) ────────────────────────────────
+
+/** Render a snippet, bolding the [..]-delimited matches emitted by FTS5. */
+function Snippet({ text }: { text: string }) {
+  const parts = text.split(/(\[[^\]]*\])/g);
+  return (
+    <p className="text-xs text-[var(--text-tertiary)] mt-0.5 line-clamp-2">
+      {parts.map((part, i) =>
+        part.startsWith("[") && part.endsWith("]") ? (
+          <mark key={i} className="bg-transparent text-[var(--accent)] font-medium">
+            {part.slice(1, -1)}
+          </mark>
+        ) : (
+          <React.Fragment key={i}>{part}</React.Fragment>
+        )
+      )}
+    </p>
+  );
+}
+
+function SearchResultItem({ hit, onClick }: { hit: SearchHit; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "w-full text-left px-4 py-3 flex flex-col gap-1 rounded-lg transition-colors",
+        "hover:bg-[var(--bg-elevated)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-[var(--text-primary)] truncate flex-1">
+          {hit.title || "Untitled meeting"}
+        </span>
+        <span className="text-xs text-[var(--text-tertiary)] shrink-0">
+          {formatRelativeDate(hit.startedAt)}
+        </span>
+      </div>
+      {hit.snippet && <Snippet text={hit.snippet} />}
+    </button>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function MeetingsPage() {
@@ -73,16 +115,22 @@ export default function MeetingsPage() {
   const [search, setSearch] = React.useState("");
   const { data: meetings, isLoading } = useMeetingList();
 
-  const filtered = React.useMemo(() => {
-    if (!meetings) return [];
-    if (!search.trim()) return meetings;
-    const q = search.toLowerCase();
-    return meetings.filter(
-      (m) =>
-        m.title.toLowerCase().includes(q) ||
-        m.summarySnippet?.toLowerCase().includes(q)
-    );
-  }, [meetings, search]);
+  // Full-text search hits (transcripts/notes/summaries) via the backend FTS5
+  // index, debounced. Empty query → show the normal recency-sorted list.
+  const [hits, setHits] = React.useState<SearchHit[] | null>(null);
+  React.useEffect(() => {
+    const q = search.trim();
+    if (!q) {
+      setHits(null);
+      return;
+    }
+    const handle = setTimeout(() => {
+      searchMeetings(q)
+        .then(setHits)
+        .catch(() => setHits([]));
+    }, 200);
+    return () => clearTimeout(handle);
+  }, [search]);
 
   if (isLoading) {
     return (
@@ -135,12 +183,22 @@ export default function MeetingsPage() {
       {/* ── List ── */}
       <ScrollArea className="flex-1">
         <div className="p-2">
-          {filtered.length === 0 ? (
-            <p className="text-xs text-[var(--text-tertiary)] text-center py-8">
-              No meetings match your search.
-            </p>
+          {hits !== null ? (
+            hits.length === 0 ? (
+              <p className="text-xs text-[var(--text-tertiary)] text-center py-8">
+                {t("search.no_results")}
+              </p>
+            ) : (
+              hits.map((hit) => (
+                <SearchResultItem
+                  key={hit.meetingId}
+                  hit={hit}
+                  onClick={() => router.push(`/meetings/${hit.meetingId}`)}
+                />
+              ))
+            )
           ) : (
-            filtered.map((card) => (
+            meetings.map((card) => (
               <MeetingItem
                 key={card.id}
                 card={card}

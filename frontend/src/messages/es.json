@@ -217,7 +217,8 @@
       "cta": "Iniciar grabación"
     },
     "search": {
-      "placeholder": "Buscar reuniones, transcripciones, notas…"
+      "placeholder": "Buscar reuniones, transcripciones, notas…",
+      "no_results": "Ninguna reunión coincide con tu búsqueda."
     },
     "card": {
       "duration": "{duration}",

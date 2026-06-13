@@ -6,6 +6,10 @@ use crate::error::MeetflowError;
 /// Each migration is idempotent (uses `IF NOT EXISTS` / `IF NOT EXISTS`).
 pub fn run_migrations(conn: &Connection) -> Result<(), MeetflowError> {
     conn.execute_batch(MIGRATION_001_INITIAL)?;
+    conn.execute_batch(MIGRATION_002_SEARCH)?;
+    // Backfill the FTS index for meetings that predate the search feature
+    // (no-op on a fresh DB or once already populated).
+    crate::db::search::reindex_all(conn)?;
     tracing::debug!("Schema migrations complete");
     Ok(())
 }
@@ -72,4 +76,17 @@ CREATE INDEX IF NOT EXISTS idx_meetings_started_at     ON meetings(started_at DE
 CREATE INDEX IF NOT EXISTS idx_transcripts_meeting_id  ON transcripts(meeting_id);
 CREATE INDEX IF NOT EXISTS idx_summaries_meeting_id    ON summaries(meeting_id);
 CREATE INDEX IF NOT EXISTS idx_notes_meeting_id        ON notes(meeting_id);
+";
+
+// ─── Migration 002 — Full-text search (FTS5) ─────────────────────────────────
+
+const MIGRATION_002_SEARCH: &str = "
+-- One FTS row per meeting: title + concatenated transcript/summary/notes body.
+-- Maintained explicitly via db::search::reindex_meeting at write points.
+CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
+    meeting_id UNINDEXED,
+    title,
+    body,
+    tokenize = 'unicode61 remove_diacritics 2'
+);
 ";
