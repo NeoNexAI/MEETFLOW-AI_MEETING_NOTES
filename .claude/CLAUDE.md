@@ -107,7 +107,9 @@ meetflow/
 - Nunca strings hardcodeados en JSX → siempre `t('namespace.key')`.
 
 ### Rust
-- `clippy::all` + `clippy::pedantic` activos. CI falla con warnings.
+- `clippy::all` activo: el CI corre `cargo clippy --all-features -- -D warnings` y
+  falla ante cualquier warning. (`clippy::pedantic` queda como objetivo opcional,
+  no forzado en CI para evitar ruido de lints muy estrictos.)
 - `Result<T, MeetflowError>` propagado con `?`. Cero `.unwrap()` en código de producción.
 - `tracing` para logging estructurado, no `println!`.
 - Cada `#[tauri::command]` documentado con doc comments + JSDoc en el wrapper TS.

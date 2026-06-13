@@ -1,80 +1,66 @@
 # MeetFlow — Project Status
 
-_Updated: 2026-05-11_
+_Updated: 2026-06-13_
 
 ## ⚡ SIGUIENTE ACCIÓN
 
-**Probar flujo completo en `pnpm tauri dev`:**
+**v0.1.0 está lista en código y endurecida tras la auditoría.** Quedan solo los
+pasos del operador (requieren máquina local + secretos) antes de etiquetar —
+ver `docs/playbooks/release.md`:
 
-```bash
-cd frontend
-pnpm tauri dev
-```
+1. Generar el par de claves Ed25519 de **producción** y sustituir
+   `LICENSE_PUBLIC_KEY_HEX` (la clave embebida actual es de bootstrap).
+2. Pinear los **checksums SHA-256 reales** de los modelos Whisper en
+   `whisper/mod.rs` (hoy van vacíos → verificación omitida con warning).
+3. Fijar el **Stripe Payment Link** real en `plan-tab.tsx`.
+4. Smoke-test de **CSP** en el primer `tauri build` (hidratación + navegación).
 
-Flujo a probar:
-1. Onboarding → descargar modelo Whisper tiny/base
-2. Grabar reunión de prueba (~20s)
-3. Parar → ir a Meeting Detail
-4. Verificar que transcripción arranca automáticamente y se muestra
-5. Generar summary con Ollama (llama3.2) o Claude
+Después: `git tag v0.1.0 && git push origin v0.1.0` → `release.yml` construye el
+instalador NSIS y crea el GitHub Release en draft.
 
-Estado a 2026-05-11:
-- `cargo check` → ✅ 0 errores (whisper-rs v0.16 + LLVM 22 + CMake 4.3)
-- `pnpm type-check` → ✅ 0 errores
-- `pnpm test` → ✅ 9/9 passing
-- Commit: `feat(whisper): full local transcription with whisper-rs v0.16`
+## Estado a 2026-06-13 (verificado, CI verde en main)
 
-**Tras validar el flujo completo:**
-Playwright e2e básico + v0.1.0 tag → GitHub Release
+- Rust: `cargo fmt --check` ✅ · `clippy --all-features -- -D warnings` ✅ · `cargo test` **30/30** ✅
+- Frontend: `pnpm type-check` ✅ · `pnpm lint` ✅ · `pnpm test` **15/15** ✅ · export build ✅
+- Seguridad: `pnpm audit --prod` + `cargo audit` → **0 vulnerabilidades** (gated en CI)
+- i18n EN/ES: paridad de claves ✅
 
-## Hitos completados
+## Hitos completados (v0.1 + auditoría)
 
-- [x] Repo clonado y plan maestro revisado
-- [x] Stack decisions fijadas (todo Rust, sin Python; sherpa-onnx en lugar de pyannote)
-- [x] MVP v0.1 scope cortado y aprobado
-- [x] Workspace estructura base + `.claude/` settings + slash commands
-- [x] LICENSE, PRIVACY, TERMS, CHANGELOG, CONTRIBUTING, README
-- [x] `.gitignore` completo
-- [x] pnpm instalado globalmente
-- [x] Rust + MSVC Build Tools 2022 instalados (workload C++ desktop)
-- [x] Init Tauri v2 + Next.js 14 en `frontend/`
-- [x] Design system Tailwind ultra-dark (globals.css, tailwind.config.ts)
-- [x] i18n next-intl client-side EN+ES
-- [x] Zustand store (recordingState, onboardingComplete, sidebarCollapsed)
-- [x] Rust backend completo:
-  - [x] `error.rs` — MeetflowError enum + From impls
-  - [x] `db/` — schema migrations + models
-  - [x] `audio/` — capture (cpal WASAPI), pipeline (tokio), devices
-  - [x] `whisper/` — model catalog, download manager (SHA256), engine real (whisper-rs v0.16)
-  - [x] `llm/` — providers, client (Ollama + Claude + OpenAI-compat), summary
-  - [x] `commands/` — audio, meetings, settings, whisper, llm (25 commands)
-  - [x] `lib.rs` — Tauri builder, DB init, state, invoke_handler
-- [x] TypeScript wrappers (`src/lib/tauri.ts`) — tipos + wrappers para los 25 comandos
-- [x] shadcn/ui components: button, badge, card, input, textarea, separator, progress, tooltip, dialog, tabs, scroll-area, select
-- [x] Layout sidebar (collapsible, recording indicator, nav items)
-- [x] Hooks: useRecording, useMeetings (TanStack Query)
-- [x] Pages: onboarding (3 steps), record, meetings list, meeting detail, settings
-- [x] GitHub Actions: ci.yml (Windows) + release.yml (tag-triggered NSIS)
-- [x] Vitest config + test setup (Tauri mocks)
-- [x] Placeholder Tauri icons generated (all 5: 32x32.png, 128x128.png, 128x128@2x.png, icon.png, icon.ico)
-- [x] `cargo check` — 0 errors (fixed: generate_handler paths, From conflict, !Send pipeline, Manager import, setup ?)
-- [x] `pnpm type-check` — 0 errors
-- [x] `pnpm test` — 9/9 passing (fixed: truncate off-by-one)
+- [x] Scaffold Tauri v2 + Next.js 15 + Rust backend (~33 comandos Tauri)
+- [x] Recording (cpal/WASAPI) + pausa/resume + selección de micrófono
+- [x] Transcripción local whisper-rs + catálogo de modelos + modelo activo
+- [x] Summaries IA (Ollama local / cloud Pro)
+- [x] Meetings: lista + búsqueda + detalle + notas autosave
+- [x] Export Markdown (free) + JSON estructurado (Pro)
+- [x] Onboarding + Settings (General/Audio/Transcription/AI/Plan/Privacy/About)
+- [x] i18n EN+ES con selector en vivo
+- [x] Cifrado en reposo de API keys (AES-256-GCM) + **DPAPI en Windows**
+- [x] Freemium: licencias Ed25519 offline + entitlements + enforcement backend + UI Plan
+- [x] **CSP estricta** en el webview
+- [x] **0 CVEs** + auditoría de dependencias en CI (pnpm + cargo)
+- [x] Tests: Rust 30 + Frontend 15 + error boundaries + coverage gate
+- [x] **Refactor**: 0 ficheros >500 líneas; settings keys centralizadas
+- [x] Fix build de export `/meetings/[id]` + step de export en CI
+- [x] Diagnóstico + roadmap: `docs/PRODUCTION_READINESS.md`
+- [x] ADRs: 001 (stack), 002 (freemium/licensing)
 
-## Hitos pendientes (v0.1)
+## Pendiente operador (pre-tag)
 
-1. **`pnpm tauri dev` — validar flujo completo record → transcript → summary** ← SIGUIENTE
-2. **Playwright e2e** config + tests básicos de onboarding + recording flow
-3. **cargo test** — añadir unit tests para LLM summary parser + DB helpers
-4. **v0.1.0 tag** → CI release build → NSIS installer en GitHub Releases
+1. Par de claves de producción + `LICENSE_PUBLIC_KEY_HEX`
+2. Pinear SHA-256 reales de modelos Whisper
+3. Stripe Payment Link real
+4. `git tag v0.1.0` → release NSIS
 
-## Para v0.2
+## Para v0.2 (diferido, no bloquea v0.1)
 
-- Diarización sherpa-onnx (speaker labels en transcriptos)
-- Google OAuth + Notion + Slack integrations
-- AI Agent Executor (post-meeting actions via Claude)
-- macOS DMG bundle
+- Diarización sherpa-onnx (speaker labels)
+- OAuth: Google + Notion + Slack + Linear
+- AI Agent Executor (acciones post-reunión vía Claude)
+- Analytics dashboard · Export PDF · macOS DMG
+- Resampling de audio con `rubato` · descargas reanudables · Playwright e2e
 
 ## Decisiones registradas
 
-- `docs/decisions/ADR-001-stack.md` — stack decisions (no Python, sherpa-onnx, Windows-first)
+- `docs/decisions/ADR-001-stack.md` — stack (no Python, sherpa-onnx, Windows-first)
+- `docs/decisions/ADR-002-freemium-licensing.md` — freemium + activación offline
